@@ -1,0 +1,10 @@
+{
+  "name": "motif-song",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "动机即歌 — Suno × PartyKeys：弹一个动机，AI 配一支乐队，灯光带你弹熟。",
+  "scripts": {
+    "proxy": "node local-proxy.mjs"
+  }
+}
