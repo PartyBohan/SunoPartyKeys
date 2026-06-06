@@ -60,6 +60,12 @@
   .score{font-size:40px;font-weight:800;background:linear-gradient(90deg,var(--green),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
   .note-feedback{font-size:14px;margin-top:6px;height:20px}
   audio{width:100%;margin-top:10px}
+  .genprog{margin-top:12px}
+  .genprog-bar{height:8px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden}
+  .genprog-fill{height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,var(--pink),var(--purple),var(--blue));background-size:200% 100%;transition:width .45s ease;animation:flow 1.8s linear infinite}
+  @keyframes flow{to{background-position:200% 0}}
+  .genprog-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin-top:6px}
+  #genPhase{color:var(--txt)}
   .legend{font-size:11px;color:var(--dim);margin-top:6px}
   a{color:var(--blue)}
 </style>
@@ -161,6 +167,10 @@ Ah ah ah-ah, la la</textarea>
     <div class="row" style="margin-top:10px">
       <button class="btn-blue" id="genBtn" disabled>🎵 生成歌曲</button>
       <span class="pill" id="genStatus">未开始</span>
+    </div>
+    <div class="genprog hidden" id="genProgress">
+      <div class="genprog-bar"><div class="genprog-fill" id="genFill"></div></div>
+      <div class="genprog-meta"><span id="genPhase">AI 配乐中…</span><span id="genElapsed" class="mono">0s</span></div>
     </div>
     <audio id="player" controls class="hidden"></audio>
   </div>
@@ -423,6 +433,7 @@ function finalizeMotif(){
 $("genBtn").onclick=generate;
 function sunoUrl(base,mode,path){ return mode==="proxy" ? base+"?path="+encodeURIComponent(path) : base+path; }
 function sunoHeaders(mode,key){ const h={"Content-Type":"application/json"}; if(mode==="direct"&&key) h["Authorization"]="Bearer "+key; return h; }
+let genTimer=null, genStart=0, gotStreaming=false;
 async function generate(){
   const mode=$("connMode").value;
   if(mode==="demo"){ setGen("内置伴奏演示模式","warn"); return fallbackBacking(); }
@@ -432,33 +443,62 @@ async function generate(){
   const style=$("promptBox").value.trim(), voice=$("voiceSel").value, lyrics=$("lyricsBox").value.trim();
   const body={ style, title:"My Motif Song" };
   if(voice){ body.lyrics=lyrics; body.voice_id=voice; } else { body.instrumental=true; }
-  setGen("提交中…","warn");
+  $("genBtn").disabled=true; gotStreaming=false; startGenProgress();
+  setGen("提交中…","warn"); setPhase("提交给 Suno…");
   try{
     const r=await fetch(sunoUrl(base,mode,"/v0/audio"),{method:"POST",headers:sunoHeaders(mode,key),body:JSON.stringify(body)});
     if(!r.ok) throw new Error("HTTP "+r.status);
     const j=await r.json();
-    setGen("生成中（"+String(j.id||"").slice(0,8)+"…）","warn");
-    const url=await pollAudio(base,mode,key,j.id);
-    if(url){ loadAudio(url); setGen("完成 ✓","ok"); }
-    else { setGen("超时/失败 → 内置伴奏","warn"); fallbackBacking(); }
+    setGen("生成中（"+String(j.id||"").slice(0,8)+"…）","warn"); setPhase("AI 配乐中…");
+    const ok=await pollAudio(base,mode,key,j.id);
+    if(ok){ setGen("完成 ✓","ok"); setPhase("完成 ✓"); finishGenProgress(true); }
+    else { setGen("超时/失败 → 内置伴奏","warn"); finishGenProgress(false); fallbackBacking(); }
   }catch(err){
-    setGen("失败("+err.message+") → 内置伴奏","err"); fallbackBacking();
-  }
+    setGen("失败("+err.message+") → 内置伴奏","err"); finishGenProgress(false); fallbackBacking();
+  }finally{ $("genBtn").disabled=false; }
 }
+// 持续轮询到 complete；一旦 streaming 出 audio_url 就立刻加载并试听（抢跑），之后继续精修到最终版。
 async function pollAudio(base,mode,key,id){
-  for(let i=0;i<40;i++){
-    await new Promise(r=>setTimeout(r,3000));
+  let lastUrl="";
+  for(let i=0;i<60;i++){
+    await wait(1500);
+    let j;
     try{
       const r=await fetch(sunoUrl(base,mode,"/v0/audio/"+id),{headers:sunoHeaders(mode,key)});
-      const j=await r.json();
-      if((j.status==="complete"||j.status==="streaming") && j.audio_url) return j.audio_url;
-      if(j.status==="error") return null;
-      setGen("生成中… ("+j.status+")","warn");
-    }catch(e){ return null; }
+      j=await r.json();
+    }catch(e){ continue; }                 // 瞬时网络抖动：继续轮询而非放弃
+    if(j.status==="error") return false;
+    if(j.audio_url && j.audio_url!==lastUrl){ lastUrl=j.audio_url; loadAudio(j.audio_url); }
+    if(j.status==="streaming" && !gotStreaming){
+      gotStreaming=true; bumpProgress(82); setPhase("🎧 已可试听（仍在精修…）"); setGen("可试听（生成中）","ok"); tryPreviewPlay();
+    }
+    if(j.status==="complete" && j.audio_url) return true;
+    if(!gotStreaming) setPhase("AI 配乐中…（"+(j.status||"…")+"）");
   }
-  return null;
+  return !!lastUrl;                          // 超时但已拿到可用音频，也算成功
 }
-function loadAudio(url){ const p=$("player"); p.src=url; p.classList.remove("hidden"); backingMode="file"; }
+function tryPreviewPlay(){ const p=$("player"); p.play().catch(()=>setPhase("🎧 已可试听 — 点 ▶ 播放")); }
+function loadAudio(url){
+  const p=$("player");
+  const wasPlaying=!p.paused && !p.ended, t=p.currentTime||0;
+  p.src=url; p.classList.remove("hidden"); backingMode="file";
+  if(wasPlaying){ p.addEventListener("loadedmetadata",()=>{ try{p.currentTime=t;}catch(_){} p.play().catch(()=>{}); },{once:true}); }
+}
+/* ---------- 生成进度 UI ---------- */
+function startGenProgress(){
+  genStart=performance.now(); $("genProgress").classList.remove("hidden"); $("genFill").style.width="0%";
+  clearInterval(genTimer);
+  genTimer=setInterval(()=>{
+    const s=(performance.now()-genStart)/1000; $("genElapsed").textContent=Math.floor(s)+"s";
+    if(!gotStreaming) bumpProgress(Math.min(75, s/45*75));   // 无真实进度 → 按 ~45s 预期平滑爬到 75%
+  },300);
+}
+function bumpProgress(pct){ const f=$("genFill"); if(pct>(parseFloat(f.style.width)||0)) f.style.width=pct+"%"; }
+function setPhase(t){ $("genPhase").textContent=t; }
+function finishGenProgress(ok){
+  clearInterval(genTimer); genTimer=null; $("genFill").style.width=ok?"100%":"0%";
+  if(ok) setTimeout(()=>$("genProgress").classList.add("hidden"),2500); else $("genProgress").classList.add("hidden");
+}
 function setGen(t,c){ const e=$("genStatus"); e.textContent=t; e.className="pill "+(c||""); }
 
 /* ---------- 内置伴奏（降级）：用检测到的调做和弦垫 ---------- */
