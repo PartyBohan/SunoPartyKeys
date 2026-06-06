@@ -367,28 +367,17 @@ const noteName = m => NOTE_NAMES[m%12] + (Math.floor(m/12)-1);
 
 /* ---------- Web Audio 钢琴音色（多泛音 + ADSR） ---------- */
 let actx=null;
-function audio(){
-  if(!actx){
-    actx=new (window.AudioContext||window.webkitAudioContext)();
-    // 0.5s delay 延音：每个音通过反馈延时拖出柔和回声尾巴
-    const d=actx.createDelay(1.0); d.delayTime.value=0.5;
-    const fb=actx.createGain(); fb.gain.value=0.32;
-    const wet=actx.createGain(); wet.gain.value=0.32;
-    d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(actx.destination);
-    actx._delaySend=d;
-  }
-  return actx;
-}
+function audio(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
 function piano(freq, dur=0.6, gain=0.22){
   const ac=audio(), t=ac.currentTime, master=ac.createGain();
-  master.gain.value=1; master.connect(ac.destination); if(ac._delaySend) master.connect(ac._delaySend);
+  master.gain.value=1; master.connect(ac.destination);
   [[1,1],[2,.5],[3,.32],[4,.18],[5,.1]].forEach(([h,a])=>{
     const o=ac.createOscillator(), g=ac.createGain();
     o.type="sine"; o.frequency.value=freq*h;
     const peak=gain*a;
     g.gain.setValueAtTime(0,t);
-    g.gain.linearRampToValueAtTime(peak,t+0.01);
-    g.gain.exponentialRampToValueAtTime(Math.max(peak*0.3,1e-4),t+0.12);
+    g.gain.linearRampToValueAtTime(peak,t+0.012);
+    g.gain.exponentialRampToValueAtTime(Math.max(peak*0.5,1e-4),t+0.15);   // 维持更饱满的延音
     g.gain.exponentialRampToValueAtTime(1e-4,t+dur);
     o.connect(g).connect(master); o.start(t); o.stop(t+dur+0.05);
   });
@@ -640,7 +629,7 @@ let recording=false, recStart=0, captured=[], active={};
 function handleDown(m){
   if(m<LOW||m>HIGH) return;
   const el=keyEl(m); if(el) el.classList.add("down");
-  playNote(m,0.7);
+  playNote(m,1.3);   // 较长延音：音弹下后柔和延续约 0.5s+
   if(curPage===0) spawnBurst(m);
   if(recording){ active[m]=performance.now()/1000; }
   if(wf.active) wfHit(m);
