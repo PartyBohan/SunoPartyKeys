@@ -348,12 +348,24 @@ Ah ah ah-ah, la la</textarea>
       <div class="legend" data-i18n="proxyLegend" style="text-align:left">代理模式：跑随附的 <span class="mono">local-proxy.mjs</span>（<span class="mono">node local-proxy.mjs sk_live_你的key</span>），或把 <span class="mono">api/suno.js</span> 部署到 Vercel。代理藏住密钥 + 解决 CORS。生成失败会自动降级为内置伴奏。</div>
     </details>
     <details>
-      <summary data-i18n="stemConn">分轨（music.ai）</summary>
-      <label data-i18n="stemWfLabel">music.ai workflow slug（分轨用）</label>
-      <input id="stemWorkflow" type="text" placeholder="my-stems">
-      <label data-i18n="stemKeyLabel">分轨 API Key（仅直连 · 仅存内存）</label>
-      <input id="stemKey" type="password" placeholder="music.ai api key">
-      <div class="legend" data-i18n="stemLegend" style="text-align:left">分轨走第 3 步。代理模式：Vercel 加环境变量 <span class="mono">MUSICAI_KEY</span>（部署 <span class="mono">api/stems.js</span>），或本地 <span class="mono">MUSICAI_KEY=... node local-proxy.mjs sk_live_...</span>。在 music.ai 后台建一个人声/伴奏分离 workflow，把它的 slug 填上面。没填或 demo 模式则跳过分轨，跟弹用整首伴奏。</div>
+      <summary data-i18n="stemConn">分轨</summary>
+      <label data-i18n="stemBackendLabel">分轨后端</label>
+      <select id="stemBackend">
+        <option value="musicai" selected data-i18n="stemBackendMusicai">music.ai（云端）</option>
+        <option value="demucs" data-i18n="stemBackendDemucs">Demucs 本地（开源 · 免费）</option>
+      </select>
+      <div id="stemMusicaiCfg">
+        <label data-i18n="stemWfLabel">music.ai workflow slug（分轨用）</label>
+        <input id="stemWorkflow" type="text" placeholder="my-stems">
+        <label data-i18n="stemKeyLabel">分轨 API Key（仅直连 · 仅存内存）</label>
+        <input id="stemKey" type="password" placeholder="music.ai api key">
+      </div>
+      <div id="stemDemucsCfg" style="display:none">
+        <label data-i18n="demucsBaseLabel">Demucs 本地地址</label>
+        <input id="demucsBase" type="text" value="http://localhost:8788">
+      </div>
+      <div class="legend" id="stemLegendMusicai" data-i18n="stemLegend" style="text-align:left">分轨走第 3 步。代理模式：Vercel 加环境变量 <span class="mono">MUSICAI_KEY</span>（部署 <span class="mono">api/stems.js</span>），或本地 <span class="mono">MUSICAI_KEY=... node local-proxy.mjs sk_live_...</span>。在 music.ai 后台建一个人声/伴奏分离 workflow，把它的 slug 填上面。没填或 demo 模式则跳过分轨，跟弹用整首伴奏。</div>
+      <div class="legend" id="stemLegendDemucs" data-i18n="demucsLegend" style="text-align:left;display:none">分轨走第 3 步。本地跑随附的 <span class="mono">demucs-server.py</span>（<span class="mono">pip install -U demucs</span> + <span class="mono">ffmpeg</span>，再 <span class="mono">python3 demucs-server.py</span>）。它把 Suno 整曲拆成人声 + 伴奏两轨，纯本地、无密钥、CPU 约 30–90 秒。没起服务则降级用整首伴奏。</div>
     </details>
   </div>
 </div>
@@ -478,12 +490,15 @@ const I18N={
     kbLegend:"电脑键盘：A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5",
     stepNames:["弹动机","调歌","分轨","跟弹"],
     psTitle:"🎚️ 拆开人声和伴奏", psDesc:"把刚生成的这首歌拆成「主音」和「伴奏」两轨，各自有静音键——静音哪个哪个就不出声。跟弹时用伴奏轨，啊啊啊人声不会跟你抢旋律。",
-    stemVocal:"主音", stemInst:"伴奏", stemMute:"静音", stemLockHint:"需 music.ai 分轨", stemPlay:"▶️ 一起播放", stemPause:"⏸ 暂停", stemRedo:"🔄 重新分轨",
+    stemVocal:"主音", stemInst:"伴奏", stemMute:"静音", stemLockHint:"需分轨服务", stemPlay:"▶️ 一起播放", stemPause:"⏸ 暂停", stemRedo:"🔄 重新分轨",
     stemIdle:"待生成歌曲", stemNoSong:"先回上一步生成一首歌", stemDemo:"演示模式不分轨（用整首伴奏）",
     stemNeedWorkflow:"请在设置里填 music.ai 的 workflow slug", stemNeedKey:"直连需在设置里填分轨 API Key",
     stemSeparating:"分轨中…（约 30–60 秒）", stemPhaseSubmit:"提交分轨任务…", stemPhaseRun:s=>`分轨处理中…（${s}）`, stemPhaseDone:"完成 ✓",
     stemDone:"✓ 已拆成人声 + 伴奏", stemFail:m=>`分轨失败(${m}) → 用整首伴奏`, stemFallback:"未分轨 → 跟弹用整首伴奏",
-    stemWfLabel:"music.ai workflow slug（分轨用）", stemKeyLabel:"分轨 API Key（仅直连 · 仅存内存）", stemConn:"分轨（music.ai）",
+    stemWfLabel:"music.ai workflow slug（分轨用）", stemKeyLabel:"分轨 API Key（仅直连 · 仅存内存）", stemConn:"分轨",
+    stemBackendLabel:"分轨后端", stemBackendMusicai:"music.ai（云端）", stemBackendDemucs:"Demucs 本地（开源 · 免费）",
+    demucsBaseLabel:"Demucs 本地地址",
+    demucsLegend:'分轨走第 3 步。本地跑随附的 <span class="mono">demucs-server.py</span>（<span class="mono">pip install -U demucs</span> + <span class="mono">ffmpeg</span>，再 <span class="mono">python3 demucs-server.py</span>）。它把 Suno 整曲拆成人声 + 伴奏两轨，纯本地、无密钥、CPU 约 30–90 秒。没起服务则降级用整首伴奏。',
     stemLegend:'分轨走第 3 步。代理模式：Vercel 加环境变量 <span class="mono">MUSICAI_KEY</span>（部署 <span class="mono">api/stems.js</span>），或本地 <span class="mono">MUSICAI_KEY=... node local-proxy.mjs sk_live_...</span>。在 music.ai 后台建一个人声/伴奏分离 workflow，把它的 slug 填上面。没填或 demo 模式则跳过分轨，跟弹用整首伴奏。',
     midiPrefix:"MIDI: ", devPrefix:"设备: ", keyPrefix:"调性: ", bpmPrefix:"速度: ", dash:"—",
     midiChecking:"检测中…", midiPk:"PartyKeys 已连接", midiGeneric:"通用 MIDI 设备已连接", midiNone:"未检测到键盘（可用电脑键盘/屏幕钢琴）",
@@ -520,13 +535,15 @@ const I18N={
     kbLegend:"Computer keys: A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5",
     stepNames:["Motif","Tune","Stems","Play"],
     psTitle:"🎚️ Split lead & backing", psDesc:"Separate the song you just made into a lead track and a backing track, each with its own mute button — mute one and it goes silent. Play-along uses the backing track so the wordless \"ah\" vocal won't fight your melody.",
-    stemVocal:"Lead", stemInst:"Backing", stemMute:"Mute", stemLockHint:"needs music.ai split", stemPlay:"▶️ Play together", stemPause:"⏸ Pause", stemRedo:"🔄 Re-split",
+    stemVocal:"Lead", stemInst:"Backing", stemMute:"Mute", stemLockHint:"needs a stem splitter", stemPlay:"▶️ Play together", stemPause:"⏸ Pause", stemRedo:"🔄 Re-split",
     stemIdle:"Generate a song first", stemNoSong:"Go back and generate a song first", stemDemo:"Demo mode skips splitting (uses full backing)",
     stemNeedWorkflow:"Set a music.ai workflow slug in Settings", stemNeedKey:"Direct mode needs a stem API key in Settings",
     stemSeparating:"Splitting… (~30–60s)", stemPhaseSubmit:"Submitting split job…", stemPhaseRun:s=>`Splitting… (${s})`, stemPhaseDone:"Done ✓",
     stemDone:"✓ Split into vocals + backing", stemFail:m=>`Split failed (${m}) → using full backing`, stemFallback:"Not split → play-along uses full backing",
-    stemWfLabel:"music.ai workflow slug (for splitting)", stemKeyLabel:"Stem API key (direct only · in memory)", stemConn:"Stem separation (music.ai)",
-    stemLegend:'Splitting is step 3. Proxy mode: add a Vercel env var <span class="mono">MUSICAI_KEY</span> (deploy <span class="mono">api/stems.js</span>), or locally <span class="mono">MUSICAI_KEY=... node local-proxy.mjs sk_live_...</span>. Create a vocal/backing separation workflow in the music.ai dashboard and put its slug above. If blank or in demo mode, splitting is skipped and play-along uses the full backing.',
+    stemWfLabel:"music.ai workflow slug (for splitting)", stemKeyLabel:"Stem API key (direct only · in memory)", stemConn:"Stem separation",
+    stemBackendLabel:"Stem backend", stemBackendMusicai:"music.ai (cloud)", stemBackendDemucs:"Demucs local (open-source · free)",
+    demucsBaseLabel:"Demucs local URL",
+    demucsLegend:'Splitting is step 3. Run the bundled <span class="mono">demucs-server.py</span> locally (<span class="mono">pip install -U demucs</span> + <span class="mono">ffmpeg</span>, then <span class="mono">python3 demucs-server.py</span>). It splits the Suno song into vocals + backing — fully local, no key, ~30–90s on CPU. If it is not running, play-along falls back to the full backing.',
     midiPrefix:"MIDI: ", devPrefix:"Device: ", keyPrefix:"Key: ", bpmPrefix:"Tempo: ", dash:"—",
     midiChecking:"checking…", midiPk:"PartyKeys connected", midiGeneric:"Generic MIDI device connected", midiNone:"No keyboard detected (use computer keys / on-screen piano)",
     midiDenied:"permission denied (use computer keys / on-screen piano)", midiUnsupported:"Browser lacks Web MIDI (use Chrome/Edge)",
@@ -849,30 +866,44 @@ function stemBase(mode){
 }
 function stemUrl(mode,path){ const b=stemBase(mode); return mode==="proxy" ? b+"?path="+encodeURIComponent(path) : b+path; }
 function stemHeaders(mode){ const h={"Content-Type":"application/json"}; if(mode==="direct"){ const k=$("stemKey").value.trim(); if(k) h["Authorization"]=k; } return h; }
+// 按所选分轨后端组装请求。Demucs 本地用自己的 origin（不走 Suno 代理），无需 workflow。
+function stemCfg(){
+  const backend=$("stemBackend").value, mode=$("connMode").value;
+  if(backend==="demucs"){
+    const b=$("demucsBase").value.trim().replace(/\/$/,"");
+    return { backend, needWf:false, headers:{"Content-Type":"application/json"},
+      post:b+"/job", job:id=>b+"/job/"+id,
+      body:url=>({ name:"Motif stems", params:{ inputUrl:url } }) };
+  }
+  return { backend:"musicai", needWf:true, headers:stemHeaders(mode),
+    post:stemUrl(mode,"/job"), job:id=>stemUrl(mode,"/job/"+id),
+    body:url=>({ name:"Motif stems", workflow:$("stemWorkflow").value.trim(), params:{ inputUrl:url } }) };
+}
 function pickStem(res,names){ if(!res||typeof res!=="object") return ""; for(const n of names){ const v=res[n]; if(typeof v==="string"&&/^https?:/.test(v)) return v; } return ""; }
 function currentSongUrl(){ const p=player(); const s=p&&p.src||""; return (s && !s.startsWith("blob:") && s!==location.href) ? s : ""; }
 
 async function enterStemPage(){
-  const url=currentSongUrl(), mode=$("connMode").value;
+  const url=currentSongUrl(), mode=$("connMode").value, backend=$("stemBackend").value;
   if(stems.done && stems.src===url && url){ showStemMix(true); setStem(t("stemDone"),"ok"); return; }
   if(mode==="demo"){ stems={src:"",vocal:"",inst:"",done:false,busy:false}; showStemMix(false); setStem(t("stemDemo"),"warn"); return; }
   if(!url){ stems={src:"",vocal:"",inst:"",done:false,busy:false}; showStemMix(false); setStem(t("stemNoSong"),"warn"); return; }
-  const wf=$("stemWorkflow").value.trim();
-  if(!wf){ stemFallbackTo(url); setStem(t("stemNeedWorkflow"),"err"); return; }
-  if(mode==="direct" && !$("stemKey").value.trim()){ stemFallbackTo(url); setStem(t("stemNeedKey"),"err"); return; }
-  separateStems(url, mode, wf);
+  if(backend==="musicai"){
+    if(!$("stemWorkflow").value.trim()){ stemFallbackTo(url); setStem(t("stemNeedWorkflow"),"err"); return; }
+    if(mode==="direct" && !$("stemKey").value.trim()){ stemFallbackTo(url); setStem(t("stemNeedKey"),"err"); return; }
+  }
+  separateStems(url);
 }
-async function separateStems(url, mode, wf){
+async function separateStems(url){
   if(stems.busy) return;
+  const cfg=stemCfg();
   stems.busy=true; stems.done=false; showStemMix(false);
   startStemProgress(); setStem(t("stemSeparating"),"warn"); setStemPhase(t("stemPhaseSubmit"));
   try{
-    const body={ name:"Motif stems", workflow:wf, params:{ inputUrl:url } };
-    const r=await fetch(stemUrl(mode,"/job"),{method:"POST",headers:stemHeaders(mode),body:JSON.stringify(body)});
+    const r=await fetch(cfg.post,{method:"POST",headers:cfg.headers,body:JSON.stringify(cfg.body(url))});
     if(!r.ok){ let m="HTTP "+r.status; try{const e=await r.json(); if(e&&(e.error||e.message)) m+=" · "+(e.error||e.message);}catch(_){} throw new Error(m); }
     const j=await r.json(); const id=j.id||j.jobId||j.job_id;
     if(!id) throw new Error("no job id");
-    const res=await pollStem(mode,id);
+    const res=await pollStem(cfg,id);
     if(!res) throw new Error("timeout");
     const vocal=pickStem(res,["vocals","vocal","Vocals","vocal_url"]);
     const inst=pickStem(res,["accompaniments","accompaniment","instrumental","instrumentals","backing","no_vocals","music","Accompaniment","instrumental_url"]);
@@ -884,10 +915,10 @@ async function separateStems(url, mode, wf){
     stems.busy=false; finishStemProgress(false); stemFallbackTo(url); setStem(t("stemFail",err.message),"err");
   }
 }
-async function pollStem(mode,id){
-  for(let i=0;i<60;i++){
+async function pollStem(cfg,id){
+  for(let i=0;i<90;i++){
     await wait(2000);
-    let j; try{ const r=await fetch(stemUrl(mode,"/job/"+id),{headers:stemHeaders(mode)}); j=await r.json(); }catch(_){ continue; }
+    let j; try{ const r=await fetch(cfg.job(id),{headers:cfg.headers}); j=await r.json(); }catch(_){ continue; }
     const st=(j.status||"").toUpperCase();
     setStemPhase(t("stemPhaseRun", st||"…"));
     if(st==="SUCCEEDED"||st==="COMPLETED"||st==="DONE") return j.result||j.results||j;
@@ -943,9 +974,19 @@ document.querySelectorAll('#stemMix .stem-mute').forEach(btn=>{
     const a=card.dataset.stem==="vocal"?$("aVocal"):$("aInst"); a.muted=!a.muted; updateStemCards(); };
 });
 $("stemPlay").onclick=stemPlayToggle;
-$("stemRedo").onclick=()=>{ const url=currentSongUrl(), mode=$("connMode").value, wf=$("stemWorkflow").value.trim();
-  if(url && mode!=="demo" && wf && !(mode==="direct"&&!$("stemKey").value.trim())){ stems.done=false; separateStems(url,mode,wf); }
+$("stemRedo").onclick=()=>{ const url=currentSongUrl(), mode=$("connMode").value, backend=$("stemBackend").value;
+  const okMusicai = backend==="demucs" || ($("stemWorkflow").value.trim() && !(mode==="direct"&&!$("stemKey").value.trim()));
+  if(url && mode!=="demo" && okMusicai){ stems.done=false; separateStems(url); }
   else enterStemPage(); };
+// 切换分轨后端：显示对应配置块 + 文案
+function syncStemBackend(){
+  const d=$("stemBackend").value==="demucs";
+  $("stemMusicaiCfg").style.display=d?"none":"";
+  $("stemDemucsCfg").style.display=d?"":"none";
+  $("stemLegendMusicai").style.display=d?"none":"";
+  $("stemLegendDemucs").style.display=d?"":"none";
+}
+$("stemBackend").onchange=syncStemBackend; syncStemBackend();
 
 /* =========================================================================
    光球 orb（page1）

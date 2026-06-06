@@ -15,6 +15,7 @@ motif-song/
 │   ├── suno.js       # Vercel 代理：Suno 生成（藏 SUNO_KEY + 解决 CORS）
 │   └── stems.js      # Vercel 代理：music.ai 人声/伴奏分轨（藏 MUSICAI_KEY）
 ├── local-proxy.mjs   # 本地开发代理（一个进程同时代理 Suno + music.ai，Node 18+）
+├── demucs-server.py  # 本地分轨服务（开源 Demucs，免费、无密钥，第 3 步可选后端）
 ├── package.json
 ├── .env.example
 └── .gitignore
@@ -80,9 +81,25 @@ App 内置两套灯光协议，设置区有「💡 测试灯光」按钮：
 
 ---
 
-## 人声/伴奏分轨（第 3 步 · music.ai）
+## 人声/伴奏分轨（第 3 步）
 
-官方 Suno 返回的是混好的单条音频、自己没有分轨。第 3 步把那条 `audio_url` 交给 **music.ai**（接受音频 URL、可轮询）拆成对齐的人声 + 伴奏两轨：
+官方 Suno 返回的是混好的单条音频、自己没有分轨。第 3 步把那条 `audio_url` 拆成对齐的人声 + 伴奏两轨，显示成两条独立轨道条（各带静音键）。设置里「分轨后端」可二选一，两者用同一套 job 协议（`POST /job` → 轮询 `GET /job/{id}` → `result.vocals` / `result.accompaniments`）：
+
+### A) Demucs 本地（开源 · 免费 · 黑客松首选）
+
+随附的 `demucs-server.py` 在你自己机器上跑 Facebook 的 [Demucs](https://github.com/facebookresearch/demucs)，把整曲拆成人声 + 伴奏。纯本地、不联外部 API、无密钥。
+
+```bash
+pip install -U demucs      # 会带上 torch
+brew install ffmpeg        # demucs 读写 mp3 需要 ffmpeg
+python3 demucs-server.py   # 默认 http://localhost:8788
+```
+
+App 设置里：**分轨后端 = Demucs 本地**，地址保持 `http://localhost:8788`。CPU 上一首歌约 30–90 秒。**只在本机能用**（线上 game.partykeys.org 不行——模型太重，跑不动浏览器/Vercel）。没起服务则降级用整首伴奏。
+
+### B) music.ai（云端 · 线上可用）
+
+把 `audio_url` 交给 **music.ai**（接受音频 URL、可轮询）：
 
 - Base：`https://api.music.ai/v1`，鉴权 `Authorization: <裸 key>`（**不是** `Bearer`）
 - 建任务 `POST /job`：`{ name, workflow:"<slug>", params:{ inputUrl } }` —— `workflow` slug 在 music.ai 后台建一个人声/伴奏分离 workflow 后获得
