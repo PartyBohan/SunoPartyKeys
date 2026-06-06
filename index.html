@@ -132,7 +132,9 @@
   @keyframes eqb{0%,100%{height:16%}50%{height:94%}}
   .stembtns{display:flex;gap:8px}
   .stembtns button{padding:7px 12px;font-size:12px;border-radius:9999px}
-  .stembtns .stem-solo.on{background:var(--grad);color:#fff}
+  .stemcard .lockhint{display:none;font-size:11px;font-weight:700;color:var(--dim);white-space:nowrap}
+  .stemcard.locked .lockhint{display:inline}
+  .stemcard.locked .stem-mute{opacity:.5;cursor:not-allowed}
   #genPhase{color:var(--txt);font-weight:700}
   audio{width:100%;margin-top:14px}
 
@@ -241,6 +243,7 @@
         <div class="stemmix" id="stemMix">
           <div class="stemcard" data-stem="vocal">
             <span class="sname">🎤 <span data-i18n="stemVocal">主音</span></span>
+            <span class="lockhint" data-i18n="stemLockHint">需 music.ai 分轨</span>
             <span class="eq"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
             <span class="stembtns">
               <button class="btn-ghost stem-mute" data-i18n-title="stemMute">🔊</button>
@@ -248,6 +251,7 @@
           </div>
           <div class="stemcard" data-stem="inst">
             <span class="sname">🎸 <span data-i18n="stemInst">伴奏</span></span>
+            <span class="lockhint" data-i18n="stemLockHint">需 music.ai 分轨</span>
             <span class="eq"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
             <span class="stembtns">
               <button class="btn-ghost stem-mute" data-i18n-title="stemMute">🔊</button>
@@ -474,7 +478,7 @@ const I18N={
     kbLegend:"电脑键盘：A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5",
     stepNames:["弹动机","调歌","分轨","跟弹"],
     psTitle:"🎚️ 拆开人声和伴奏", psDesc:"把刚生成的这首歌拆成「主音」和「伴奏」两轨，各自有静音键——静音哪个哪个就不出声。跟弹时用伴奏轨，啊啊啊人声不会跟你抢旋律。",
-    stemVocal:"主音", stemInst:"伴奏", stemMute:"静音", stemPlay:"▶️ 一起播放", stemPause:"⏸ 暂停", stemRedo:"🔄 重新分轨",
+    stemVocal:"主音", stemInst:"伴奏", stemMute:"静音", stemLockHint:"需 music.ai 分轨", stemPlay:"▶️ 一起播放", stemPause:"⏸ 暂停", stemRedo:"🔄 重新分轨",
     stemIdle:"待生成歌曲", stemNoSong:"先回上一步生成一首歌", stemDemo:"演示模式不分轨（用整首伴奏）",
     stemNeedWorkflow:"请在设置里填 music.ai 的 workflow slug", stemNeedKey:"直连需在设置里填分轨 API Key",
     stemSeparating:"分轨中…（约 30–60 秒）", stemPhaseSubmit:"提交分轨任务…", stemPhaseRun:s=>`分轨处理中…（${s}）`, stemPhaseDone:"完成 ✓",
@@ -516,7 +520,7 @@ const I18N={
     kbLegend:"Computer keys: A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5",
     stepNames:["Motif","Tune","Stems","Play"],
     psTitle:"🎚️ Split lead & backing", psDesc:"Separate the song you just made into a lead track and a backing track, each with its own mute button — mute one and it goes silent. Play-along uses the backing track so the wordless \"ah\" vocal won't fight your melody.",
-    stemVocal:"Lead", stemInst:"Backing", stemMute:"Mute", stemPlay:"▶️ Play together", stemPause:"⏸ Pause", stemRedo:"🔄 Re-split",
+    stemVocal:"Lead", stemInst:"Backing", stemMute:"Mute", stemLockHint:"needs music.ai split", stemPlay:"▶️ Play together", stemPause:"⏸ Pause", stemRedo:"🔄 Re-split",
     stemIdle:"Generate a song first", stemNoSong:"Go back and generate a song first", stemDemo:"Demo mode skips splitting (uses full backing)",
     stemNeedWorkflow:"Set a music.ai workflow slug in Settings", stemNeedKey:"Direct mode needs a stem API key in Settings",
     stemSeparating:"Splitting… (~30–60s)", stemPhaseSubmit:"Submitting split job…", stemPhaseRun:s=>`Splitting… (${s})`, stemPhaseDone:"Done ✓",
@@ -898,9 +902,11 @@ function stemFallbackTo(url){
 }
 function showStemMix(state){
   const mix=$("stemMix"), vCard=mix.querySelector('[data-stem="vocal"]'), iCard=mix.querySelector('[data-stem="inst"]');
-  if(state===true){ mix.style.display="flex"; vCard.style.display="flex"; iCard.style.display="flex"; }
-  else if(state==="fallback"){ mix.style.display="flex"; vCard.style.display="none"; iCard.style.display="flex"; }
-  else { mix.style.display="none"; }
+  if(state===false){ mix.style.display="none"; return; }
+  // 始终显示两条轨：主音 + 伴奏。没真分轨(fallback)时主音轨锁定并提示需要 music.ai。
+  mix.style.display="flex"; vCard.style.display="flex"; iCard.style.display="flex";
+  iCard.classList.remove("locked");
+  vCard.classList.toggle("locked", state==="fallback");
   updateStemCards();
 }
 function startStemProgress(){
@@ -926,14 +932,15 @@ function updateStemCards(){
   document.querySelectorAll('#stemMix .stemcard').forEach(card=>{
     const a = card.dataset.stem==="vocal" ? $("aVocal") : $("aInst");
     const has = !!a.src && !a.src.endsWith(location.pathname);
-    card.classList.toggle("muted", a.muted || !has);
-    card.classList.toggle("playing", stemPlaying && !a.muted && has);
-    const mb=card.querySelector(".stem-mute"); if(mb) mb.textContent = a.muted ? "🔇" : "🔊";
+    const locked = card.classList.contains("locked");
+    card.classList.toggle("muted", locked || a.muted || !has);
+    card.classList.toggle("playing", stemPlaying && !a.muted && has && !locked);
+    const mb=card.querySelector(".stem-mute"); if(mb) mb.textContent = locked ? "🔒" : (a.muted ? "🔇" : "🔊");
   });
 }
 document.querySelectorAll('#stemMix .stem-mute').forEach(btn=>{
-  btn.onclick=()=>{ const card=btn.closest('.stemcard'), a=card.dataset.stem==="vocal"?$("aVocal"):$("aInst");
-    a.muted=!a.muted; updateStemCards(); };
+  btn.onclick=()=>{ const card=btn.closest('.stemcard'); if(card.classList.contains("locked")) return;
+    const a=card.dataset.stem==="vocal"?$("aVocal"):$("aInst"); a.muted=!a.muted; updateStemCards(); };
 });
 $("stemPlay").onclick=stemPlayToggle;
 $("stemRedo").onclick=()=>{ const url=currentSongUrl(), mode=$("connMode").value, wf=$("stemWorkflow").value.trim();
