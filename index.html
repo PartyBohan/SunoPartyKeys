@@ -233,26 +233,24 @@
     <section class="page" data-page="2">
       <div class="panel">
         <h2 data-i18n="psTitle">🎚️ 拆开人声和伴奏</h2>
-        <p class="desc" data-i18n="psDesc">把刚生成的这首歌拆成「人声」和「伴奏」两轨——可以分别静音 / 独奏试听。跟弹时会自动用伴奏轨，啊啊啊人声不会跟你抢旋律。</p>
+        <p class="desc" data-i18n="psDesc">把刚生成的这首歌拆成「主音」和「伴奏」两轨，各自有静音键——静音哪个哪个就不出声。跟弹时用伴奏轨，啊啊啊人声不会跟你抢旋律。</p>
         <div class="genprog hidden" id="stemProgress">
           <div class="genprog-bar"><div class="genprog-fill" id="stemFill"></div></div>
           <div class="genprog-meta"><span id="stemPhase">…</span><span id="stemElapsed" class="mono">0s</span></div>
         </div>
         <div class="stemmix" id="stemMix">
           <div class="stemcard" data-stem="vocal">
-            <span class="sname">🎤 <span data-i18n="stemVocal">人声</span></span>
+            <span class="sname">🎤 <span data-i18n="stemVocal">主音</span></span>
             <span class="eq"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
             <span class="stembtns">
-              <button class="btn-ghost stem-solo" data-i18n="stemSolo">独奏</button>
-              <button class="btn-ghost stem-mute">🔊</button>
+              <button class="btn-ghost stem-mute" data-i18n-title="stemMute">🔊</button>
             </span>
           </div>
           <div class="stemcard" data-stem="inst">
             <span class="sname">🎸 <span data-i18n="stemInst">伴奏</span></span>
             <span class="eq"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
             <span class="stembtns">
-              <button class="btn-ghost stem-solo" data-i18n="stemSolo">独奏</button>
-              <button class="btn-ghost stem-mute">🔊</button>
+              <button class="btn-ghost stem-mute" data-i18n-title="stemMute">🔊</button>
             </span>
           </div>
         </div>
@@ -274,7 +272,7 @@
     <section class="page" data-page="3">
       <div class="panel">
         <h2 data-i18n="p3Title">✨ 跟着光弹</h2>
-        <p class="desc" data-i18n="p3Desc">伴奏在放，主旋律从上往下落。音符停在判定线、对应琴键亮起时就弹它——弹对灯灭、音符消除，下一个亮起。按自己的节奏来。</p>
+        <p class="desc" data-i18n="p3Desc">主音（旋律）从上往下落。音符停在判定线、对应琴键亮起时就弹它——弹对才出声、灯灭、消除，下一个亮起。完全按你的节奏，弹到哪播到哪。</p>
         <div class="hud">
           <div><div class="v" id="progN">0/0</div><div class="k" data-i18n="statProg">进度</div></div>
           <div><div class="v" id="comboN">0</div><div class="k" data-i18n="statCombo">连击</div></div>
@@ -286,7 +284,6 @@
           <div class="piano" id="piano3" style="margin-top:-2px"></div>
         </div>
         <div class="row" style="justify-content:center;margin-top:12px">
-          <button class="btn-ghost" id="backingBtn" data-i18n="backingPause">⏸ 暂停伴奏</button>
           <button class="btn-ghost" id="restartBtn" data-i18n="restart">🔄 重来</button>
         </div>
         <div class="navrow">
@@ -370,10 +367,21 @@ const noteName = m => NOTE_NAMES[m%12] + (Math.floor(m/12)-1);
 
 /* ---------- Web Audio 钢琴音色（多泛音 + ADSR） ---------- */
 let actx=null;
-function audio(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
+function audio(){
+  if(!actx){
+    actx=new (window.AudioContext||window.webkitAudioContext)();
+    // 0.5s delay 延音：每个音通过反馈延时拖出柔和回声尾巴
+    const d=actx.createDelay(1.0); d.delayTime.value=0.5;
+    const fb=actx.createGain(); fb.gain.value=0.32;
+    const wet=actx.createGain(); wet.gain.value=0.32;
+    d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(actx.destination);
+    actx._delaySend=d;
+  }
+  return actx;
+}
 function piano(freq, dur=0.6, gain=0.22){
   const ac=audio(), t=ac.currentTime, master=ac.createGain();
-  master.gain.value=1; master.connect(ac.destination);
+  master.gain.value=1; master.connect(ac.destination); if(ac._delaySend) master.connect(ac._delaySend);
   [[1,1],[2,.5],[3,.32],[4,.18],[5,.1]].forEach(([h,a])=>{
     const o=ac.createOscillator(), g=ac.createGain();
     o.type="sine"; o.frequency.value=freq*h;
@@ -461,7 +469,7 @@ const I18N={
     title:"动机即歌",
     p1Title:"🎹 弹一个动机", p1Desc:"点「开始录制」，在键盘上弹 4–8 个音（屏幕钢琴 / 电脑键盘 A S D F G… / PartyKeys 都行），每个音都会从琴键上方升起一束能量光。弹完再点一下结束。",
     p2Title:"🎨 调一调你的歌", p2Desc:"点选风格、速度、乐器和人声，它们会自动写进下面的提示词。满意了就生成。",
-    p3Title:"✨ 跟着光弹", p3Desc:"伴奏在放，主旋律从上往下落。音符停在判定线、对应琴键亮起时就弹它——弹对灯灭、音符消除，下一个亮起。按自己的节奏来。",
+    p3Title:"✨ 跟着光弹", p3Desc:"主音（旋律）从上往下落。音符停在判定线、对应琴键亮起时就弹它——弹对才出声、灯灭、消除，下一个亮起。完全按你的节奏，弹到哪播到哪。",
     clear:"清空", next:"下一步 →", back:"← 上一步", restart:"🔄 重来",
     grpStyle:"风格", grpTempo:"速度", grpInst:"主要乐器（可多选）", grpVocal:"人声",
     promptLabel:"Suno 提示词（可手动修改）", promptPh:"先录一个动机…", lyricsLabel:"人声内容（啊啊啊，无歌词）",
@@ -476,8 +484,8 @@ const I18N={
     proxyLegend:'代理模式：跑随附的 <span class="mono">local-proxy.mjs</span>（<span class="mono">node local-proxy.mjs sk_live_你的key</span>），或把 <span class="mono">api/suno.js</span> 部署到 Vercel。代理藏住密钥 + 解决 CORS。生成失败会自动降级为内置伴奏。',
     kbLegend:"电脑键盘：A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5",
     stepNames:["弹动机","调歌","分轨","跟弹"],
-    psTitle:"🎚️ 拆开人声和伴奏", psDesc:"把刚生成的这首歌拆成「人声」和「伴奏」两轨——可以分别静音 / 独奏试听。跟弹时会自动用伴奏轨，啊啊啊人声不会跟你抢旋律。",
-    stemVocal:"人声", stemInst:"伴奏", stemSolo:"独奏", stemPlay:"▶️ 一起播放", stemPause:"⏸ 暂停", stemRedo:"🔄 重新分轨",
+    psTitle:"🎚️ 拆开人声和伴奏", psDesc:"把刚生成的这首歌拆成「主音」和「伴奏」两轨，各自有静音键——静音哪个哪个就不出声。跟弹时用伴奏轨，啊啊啊人声不会跟你抢旋律。",
+    stemVocal:"主音", stemInst:"伴奏", stemMute:"静音", stemPlay:"▶️ 一起播放", stemPause:"⏸ 暂停", stemRedo:"🔄 重新分轨",
     stemIdle:"待生成歌曲", stemNoSong:"先回上一步生成一首歌", stemDemo:"演示模式不分轨（用整首伴奏）",
     stemNeedWorkflow:"请在设置里填 music.ai 的 workflow slug", stemNeedKey:"直连需在设置里填分轨 API Key",
     stemSeparating:"分轨中…（约 30–60 秒）", stemPhaseSubmit:"提交分轨任务…", stemPhaseRun:s=>`分轨处理中…（${s}）`, stemPhaseDone:"完成 ✓",
@@ -503,7 +511,7 @@ const I18N={
     title:"Motif Song",
     p1Title:"🎹 Play a motif", p1Desc:"Hit Record and play 4–8 notes (on-screen piano / computer keys A S D F G… / PartyKeys). Each note bursts a ribbon of light above the key. Tap again to stop.",
     p2Title:"🎨 Tune your song", p2Desc:"Pick a style, tempo, instruments and vocals — they get written straight into the prompt below. Generate when happy.",
-    p3Title:"✨ Play along", p3Desc:"Backing plays while the melody falls from the top. When a note stops at the line and its key lights up, play it — correct hit clears the note and the light, then the next lights up. Go at your own pace.",
+    p3Title:"✨ Play along", p3Desc:"The lead melody falls from the top. When a note stops at the line and its key lights up, play it — a correct hit sounds the note, clears it and the light, then the next lights up. Fully self-paced: it only sounds where you play.",
     clear:"Clear", next:"Next →", back:"← Back", restart:"🔄 Restart",
     grpStyle:"Style", grpTempo:"Tempo", grpInst:"Instruments (multi)", grpVocal:"Vocals",
     promptLabel:"Suno prompt (editable)", promptPh:"Record a motif first…", lyricsLabel:"Vocal content (wordless \"ah\")",
@@ -518,8 +526,8 @@ const I18N={
     proxyLegend:'Proxy mode: run the bundled <span class="mono">local-proxy.mjs</span> (<span class="mono">node local-proxy.mjs sk_live_yourkey</span>) or deploy <span class="mono">api/suno.js</span> to Vercel. The proxy hides your key + fixes CORS. On failure it falls back to the built-in backing.',
     kbLegend:"Computer keys: A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5",
     stepNames:["Motif","Tune","Stems","Play"],
-    psTitle:"🎚️ Split vocals & backing", psDesc:"Separate the song you just made into a vocal track and a backing track — mute or solo each. Play-along uses the backing track so the wordless \"ah\" vocal won't fight your melody.",
-    stemVocal:"Vocals", stemInst:"Backing", stemSolo:"Solo", stemPlay:"▶️ Play together", stemPause:"⏸ Pause", stemRedo:"🔄 Re-split",
+    psTitle:"🎚️ Split lead & backing", psDesc:"Separate the song you just made into a lead track and a backing track, each with its own mute button — mute one and it goes silent. Play-along uses the backing track so the wordless \"ah\" vocal won't fight your melody.",
+    stemVocal:"Lead", stemInst:"Backing", stemMute:"Mute", stemPlay:"▶️ Play together", stemPause:"⏸ Pause", stemRedo:"🔄 Re-split",
     stemIdle:"Generate a song first", stemNoSong:"Go back and generate a song first", stemDemo:"Demo mode skips splitting (uses full backing)",
     stemNeedWorkflow:"Set a music.ai workflow slug in Settings", stemNeedKey:"Direct mode needs a stem API key in Settings",
     stemSeparating:"Splitting… (~30–60s)", stemPhaseSubmit:"Submitting split job…", stemPhaseRun:s=>`Splitting… (${s})`, stemPhaseDone:"Done ✓",
@@ -561,7 +569,6 @@ function refreshDynamic(){
   $("pillBpm").textContent=_bpm?t("bpmPrefix")+effectiveBpm()+" bpm":t("dash");
   $("recBtn").textContent=recording?t("recStop"):t("recStart");
   $("stepName").textContent=t("stepNames")[curPage]||"";
-  $("backingBtn").textContent= (player().paused? t("backingPlay"): t("backingPause"));
 }
 
 /* ---------- MIDI 接入 ---------- */
@@ -732,11 +739,16 @@ function renderChips(key){
   });
 }
 function renderAllChips(){ ["style","tempo","inst","vocal"].forEach(renderChips); }
+function motifNotes(){ return captured.slice().sort((a,b)=>a.on-b.on).map(n=>noteName(n.note)); }
 function composePrompt(){
   const k=_key||{name:"C major",mode:"major"};
   const mood = k.mode==="minor" ? "introspective, a touch melancholic" : "warm, hopeful";
   const inst=[...SEL.inst].map(i=>CHIPS.inst.items[i].v);
-  const parts=[ CHIPS.style.items[SEL.style].v, k.name, "around "+effectiveBpm()+" bpm", mood ];
+  const motif=motifNotes().slice(0,24);
+  const parts=[ CHIPS.style.items[SEL.style].v ];
+  // 用用户弹的真实音作为主旋律动机，而不是只给个调名
+  if(motif.length) parts.push("build the main melody around this exact motif: "+motif.join(" "));
+  parts.push("in "+k.name, "around "+effectiveBpm()+" bpm", mood);
   if(inst.length) parts.push("featuring "+inst.join(" and "));
   parts.push(CHIPS.vocal.items[SEL.vocal].desc, "simple and beginner-friendly");
   $("promptBox").value=parts.filter(Boolean).join(", ");
@@ -826,7 +838,8 @@ function startBacking(){
   }, Math.max(500,beat));
 }
 function stopBacking(){ if(backingTimer){clearInterval(backingTimer);backingTimer=null;} const p=player(); if(backingMode==="file") p.pause(); }
-$("backingBtn").onclick=()=>{
+const _backingBtn=$("backingBtn");
+if(_backingBtn) _backingBtn.onclick=()=>{
   if(backingMode==="file"){ const p=player(); if(p.paused) p.play().catch(()=>{}); else p.pause(); }
   else { if(backingTimer) stopBacking(); else startBacking(); }
   refreshDynamic();
@@ -930,30 +943,20 @@ function updateStemCards(){
   });
 }
 document.querySelectorAll('#stemMix .stem-mute').forEach(btn=>{
-  btn.onclick=()=>{ const card=btn.closest('.stemcard'), a=card.dataset.stem==="vocal"?$("aVocal"):$("aInst"); a.muted=!a.muted;
-    if(a.muted){ card.classList.remove("solo"); card.querySelector('.stem-solo').classList.remove("on"); } updateStemCards(); };
-});
-document.querySelectorAll('#stemMix .stem-solo').forEach(btn=>{
-  btn.onclick=()=>{ const card=btn.closest('.stemcard'), on=!btn.classList.contains("on");
-    document.querySelectorAll('#stemMix .stem-solo').forEach(b=>b.classList.remove("on"));
-    document.querySelectorAll('#stemMix .stemcard').forEach(c=>c.classList.remove("solo"));
-    const v=$("aVocal"), inst=$("aInst");
-    if(on){ btn.classList.add("on"); card.classList.add("solo"); const isV=card.dataset.stem==="vocal"; v.muted=!isV; inst.muted=isV; }
-    else { v.muted=false; inst.muted=false; }
-    updateStemCards(); };
+  btn.onclick=()=>{ const card=btn.closest('.stemcard'), a=card.dataset.stem==="vocal"?$("aVocal"):$("aInst");
+    a.muted=!a.muted; updateStemCards(); };
 });
 $("stemPlay").onclick=stemPlayToggle;
 $("stemRedo").onclick=()=>{ const url=currentSongUrl(), mode=$("connMode").value, wf=$("stemWorkflow").value.trim();
   if(url && mode!=="demo" && wf && !(mode==="direct"&&!$("stemKey").value.trim())){ stems.done=false; separateStems(url,mode,wf); }
   else enterStemPage(); };
-function prepWaterfallBacking(){ if(stems.inst && !stems.inst.endsWith(location.pathname)) loadAudio(stems.inst); }
 
 /* =========================================================================
    光球 orb（page1）
    ========================================================================= */
 function setupCanvas(c){
   const dpr=window.devicePixelRatio||1, r=c.getBoundingClientRect();
-  c.width=Math.max(1,r.width*dpr); c.height=Math.max(1,r.height*dpr);
+  c.width=Math.max(1,Math.round(r.width*dpr)); c.height=Math.max(1,Math.round(r.height*dpr));
   const ctx=c.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
   return {ctx,w:r.width,h:r.height};
 }
@@ -1043,12 +1046,11 @@ function wfStart(){
   layoutTileX();
   $("progN").textContent="0/"+wf.notes.length; $("comboN").textContent="0"; $("scoreN").textContent="—";
   $("wfHint").textContent=t("wfReady");
-  wf.active=true; startBacking(); wf.raf=requestAnimationFrame(wfFrame);
+  wf.active=true; wf._grad=null; wf.raf=requestAnimationFrame(wfFrame);
 }
 function wfStop(){
   wf.active=false; if(wf.raf){cancelAnimationFrame(wf.raf); wf.raf=null;}
   if(wf.litNote!=null){ litOff(wf.litNote); ledAllOff(); wf.litNote=null; }
-  stopBacking();
 }
 function layoutTileX(){
   const c=$("wfCanvas");
@@ -1056,14 +1058,15 @@ function layoutTileX(){
 }
 function wfFrame(){
   const c=$("wfCanvas"); const dpr=window.devicePixelRatio||1; const r=c.getBoundingClientRect();
-  if(c.width!==Math.round(r.width*dpr)||c.height!==Math.round(r.height*dpr)){ c.width=r.width*dpr; c.height=r.height*dpr; layoutTileX(); wf.holdY=r.height-wf.tileH-6; }
+  const cw=Math.round(r.width*dpr), ch=Math.round(r.height*dpr);
+  if(c.width!==cw||c.height!==ch){ c.width=cw; c.height=ch; layoutTileX(); wf.holdY=r.height-wf.tileH-6; wf._grad=null; }
   const ctx=c.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
   const w=r.width, h=r.height; ctx.clearRect(0,0,w,h);
 
-  // judgment line
+  // judgment line（渐变只在尺寸变化时重建，避免逐帧分配）
   const ly=wf.holdY+wf.tileH+2;
-  const lg=ctx.createLinearGradient(0,0,w,0); lg.addColorStop(0,"#4f8cff");lg.addColorStop(.5,"#a64bff");lg.addColorStop(1,"#ff8a3d");
-  ctx.strokeStyle=lg; ctx.lineWidth=2; ctx.globalAlpha=.9; ctx.beginPath(); ctx.moveTo(8,ly); ctx.lineTo(w-8,ly); ctx.stroke(); ctx.globalAlpha=1;
+  if(!wf._grad){ const lg=ctx.createLinearGradient(0,0,w,0); lg.addColorStop(0,"#4f8cff");lg.addColorStop(.5,"#a64bff");lg.addColorStop(1,"#ff8a3d"); wf._grad=lg; }
+  ctx.strokeStyle=wf._grad; ctx.lineWidth=2; ctx.globalAlpha=.9; ctx.beginPath(); ctx.moveTo(8,ly); ctx.lineTo(w-8,ly); ctx.stroke(); ctx.globalAlpha=1;
 
   // tiles (front = idx)
   for(let i=wf.idx;i<wf.notes.length && i<wf.idx+6;i++){
@@ -1092,7 +1095,7 @@ function drawTile(ctx,x,y,note,front,slot){
   const w=wf.tileW, h=wf.tileH, rad=10; const col=WF_COLORS[slot%WF_COLORS.length];
   const x0=x-w/2;
   ctx.save();
-  if(front){ ctx.shadowColor=col[0]; ctx.shadowBlur=22; }
+  if(front){ ctx.shadowColor=col[0]; ctx.shadowBlur=14; }
   const g=ctx.createLinearGradient(x0,y,x0,y+h); g.addColorStop(0,col[1]); g.addColorStop(1,col[0]);
   ctx.fillStyle=g; ctx.globalAlpha=front?1:Math.max(.35,1-slot*0.16);
   roundRect(ctx,x0,y,w,h,rad); ctx.fill();
@@ -1128,7 +1131,7 @@ function wfFinish(){
   for(let i=0;i<3;i++) setTimeout(()=>burst(($("wfCanvas").getBoundingClientRect().width)*(0.3+0.2*i), 60+i*20), i*180);
   wf.active=false; if(wf.litNote!=null){litOff(wf.litNote);ledAllOff();wf.litNote=null;}
 }
-$("restartBtn").onclick=()=>{ if(curPage===2) wfStart(); };
+$("restartBtn").onclick=()=>{ if(curPage===3) wfStart(); };
 
 /* ---------- 灯光测试 + 协议切换（设置弹窗） ---------- */
 $("ledMode").onchange=()=>{ LED_MODE=$("ledMode").value; if(midiOut){ ledInit(); $("ledHint").textContent=t("ledSwitched",LED_MODE); } };
@@ -1166,7 +1169,7 @@ function onEnterPage(i){
   if(i===0){ activePiano=$("piano1"); startOrb(); }
   if(i===1){ composePrompt(); }
   if(i===2){ enterStemPage(); }
-  if(i===3){ activePiano=$("piano3"); prepWaterfallBacking(); if(backingMode==="none") backingMode="builtin"; wfStart(); }
+  if(i===3){ activePiano=$("piano3"); wfStart(); }
 }
 $("next1").onclick=()=>showPage(1);
 $("back2").onclick=()=>showPage(0);
