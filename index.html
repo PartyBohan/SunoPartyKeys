@@ -3,105 +3,264 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>动机即歌 · Suno × PartyKeys 原型</title>
+<title>动机即歌 · Suno × PartyKeys</title>
 <style>
-  /* ===== Spotify-inspired design system ===== */
+  /* ===== vibrant blue–purple–orange mixed theme ===== */
   :root{
-    --bg:#121212; --surface:#181818; --surface2:#1f1f1f; --elev:#252525; --elev2:#282828;
-    /* Morandi blue–purple–orange (muted / low-saturation) */
-    --accent:#9a8cc4; --accent2:#7e96c2;          /* 主色：莫兰迪紫 / 蓝 */
-    --txt:#f3f1f7; --txt2:#c4c0cf; --dim:#a7a2b5;
-    --red:#c98a86; --orange:#cc9b78; --blue:#7e96c2; --purple:#9a8cc4;
-    --border:#4d4d4d; --border-light:#7c7c7c;
-    --shadow-elev:rgba(0,0,0,.3) 0px 8px 8px; --shadow-dialog:rgba(0,0,0,.5) 0px 8px 24px;
+    --bg:#0a0a12; --txt:#f3f1fb; --txt2:#c5c2d6; --dim:#928fa6;
+    --blue:#4f8cff; --purple:#a64bff; --orange:#ff8a3d; --pink:#ff5ea3;
+    --grad:linear-gradient(120deg,#4f8cff 0%,#a64bff 50%,#ff8a3d 100%);
+    --grad-rev:linear-gradient(120deg,#ff8a3d 0%,#a64bff 50%,#4f8cff 100%);
+    --glow:rgba(120,80,255,.45);
+    --panel:rgba(24,23,38,.72);
+    --shadow-dialog:0 24px 70px rgba(0,0,0,.6);
   }
   *{box-sizing:border-box}
+  html,body{height:100%}
   body{
-    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;
-    color:var(--txt); min-height:100vh; background:var(--bg);
+    margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--txt);background:var(--bg);overflow:hidden;
   }
-  .wrap{max-width:960px;margin:0 auto;padding:28px 18px 90px}
-  h1{font-size:26px;margin:0 0 2px;font-weight:700;letter-spacing:-.2px}
-  h1 .em{color:var(--dim);font-weight:700}
-  .sub{color:var(--dim);font-size:14px;margin-bottom:20px}
-  .card{background:var(--surface);border:none;border-radius:8px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow-elev)}
-  .card h2{font-size:18px;margin:0 0 12px;display:flex;align-items:center;gap:8px;font-weight:700;line-height:1.3}
-  .badge{font-size:11px;padding:3px 10px;border-radius:9999px;background:var(--surface2);color:var(--dim);font-weight:700}
-  .step-no{display:inline-flex;width:26px;height:26px;border-radius:50%;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:var(--accent);color:#121212}
-  button{font-family:inherit;cursor:pointer;border:none;border-radius:9999px;padding:9px 20px;font-size:14px;font-weight:700;letter-spacing:.1px;color:var(--txt);background:var(--surface2);transition:transform .1s ease,background .15s ease,filter .15s ease}
-  button:hover{transform:scale(1.04);background:var(--elev2)}
-  button:disabled{opacity:.4;cursor:not-allowed;transform:none}
-  .btn-primary,.btn-blue{background:var(--accent);color:#121212}
-  .btn-primary:hover,.btn-blue:hover{background:var(--accent);filter:brightness(1.08)}
-  .btn-green{background:transparent;color:var(--txt);box-shadow:inset 0 0 0 1px var(--border-light)}
-  .btn-green:hover{background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px var(--txt)}
+  /* animated multi-color background */
+  .bgfx{position:fixed;inset:-20%;z-index:0;filter:blur(60px) saturate(1.3);opacity:.55;
+    background:
+      radial-gradient(40% 40% at 20% 25%,#4f8cffaa,transparent 70%),
+      radial-gradient(45% 45% at 80% 30%,#a64bffaa,transparent 70%),
+      radial-gradient(50% 50% at 60% 85%,#ff8a3d99,transparent 70%),
+      radial-gradient(40% 40% at 15% 80%,#ff5ea399,transparent 70%);
+    animation:drift 20s ease-in-out infinite alternate;}
+  @keyframes drift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(3%,-3%) scale(1.08)}100%{transform:translate(-3%,2%) scale(1.04)}}
+
+  .topbtn{position:fixed;top:16px;z-index:90;cursor:pointer;border:none;border-radius:9999px;
+    background:rgba(20,20,30,.6);backdrop-filter:blur(8px);color:var(--txt);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);font-weight:700;transition:transform .15s,background .15s}
+  .topbtn:hover{transform:scale(1.06);background:rgba(40,40,55,.8)}
+  #langBtn{right:16px;padding:8px 16px;font-size:13px}
+  #gearBtn{right:84px;width:40px;height:40px;font-size:17px;padding:0}
+
+  .stage{position:relative;z-index:2;height:100vh;display:flex;flex-direction:column;padding:18px 16px 10px}
+  .header{text-align:center;flex:0 0 auto}
+  .brand{font-size:22px;font-weight:800;letter-spacing:-.3px}
+  .gtext{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .brand .em{font-size:13px;color:var(--dim);font-weight:600;margin-left:6px}
+  .steps{display:flex;gap:8px;justify-content:center;margin:12px 0 4px}
+  .dot{width:30px;height:5px;border-radius:9999px;background:rgba(255,255,255,.14);transition:background .4s}
+  .dot.on{background:var(--grad)}
+  .stepname{font-size:12px;color:var(--dim);text-align:center;font-weight:600;letter-spacing:.3px}
+
+  .deck{position:relative;flex:1 1 auto;margin-top:10px}
+  .page{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;transform:translateX(64px) scale(.95);
+    pointer-events:none;transition:opacity .42s ease,transform .56s cubic-bezier(.22,1,.36,1);overflow:auto;padding:2px}
+  .page.active{opacity:1;transform:none;pointer-events:auto}
+  .page.left{transform:translateX(-64px) scale(.95);opacity:0}
+
+  .panel{width:100%;max-width:880px;margin:auto;position:relative;overflow:hidden;
+    background:var(--panel);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08);
+    border-radius:24px;padding:24px 26px;box-shadow:0 24px 64px rgba(0,0,0,.5)}
+  .panel::before{content:"";position:absolute;left:0;top:0;right:0;height:4px;background:var(--grad)}
+  .panel h2{margin:0 0 4px;font-size:20px;font-weight:800}
+  .panel .desc{color:var(--txt2);font-size:13.5px;margin:0 0 16px;line-height:1.5}
+
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:9999px;padding:11px 22px;font-size:14px;
+    font-weight:700;color:var(--txt);background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);
+    transition:transform .12s ease,filter .15s ease,background .15s}
+  button:hover{transform:scale(1.04)}
+  button:disabled{opacity:.35;cursor:not-allowed;transform:none}
+  .btn-primary{background:var(--grad);color:#fff;box-shadow:0 10px 26px var(--glow)}
+  .btn-primary:hover{filter:brightness(1.08)}
+  .btn-ghost{background:rgba(255,255,255,.06)}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-  label{font-size:13px;color:var(--dim);display:block;margin:10px 0 5px;font-weight:400}
-  input,select,textarea{font-family:inherit;width:100%;background:var(--surface2);border:none;box-shadow:inset 0 0 0 1px var(--border);color:var(--txt);border-radius:4px;padding:10px 12px;font-size:13px;transition:box-shadow .15s ease}
-  input:focus,select:focus,textarea:focus{outline:none;box-shadow:inset 0 0 0 1px var(--txt)}
-  textarea{resize:vertical;min-height:60px;line-height:1.45}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .pill{font-size:12px;padding:5px 12px;border-radius:9999px;background:var(--surface2);color:var(--dim);font-weight:700}
-  .pill.ok{color:var(--accent)}
+  .navrow{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:10px}
+  .pill{font-size:12px;padding:6px 13px;border-radius:9999px;background:rgba(255,255,255,.07);color:var(--txt2);font-weight:700}
+  .pill.ok{color:#fff;background:linear-gradient(120deg,#4f8cff44,#a64bff44);box-shadow:inset 0 0 0 1px #a64bff66}
   .pill.warn{color:var(--orange)}
-  .pill.err{color:var(--red)}
-  /* piano */
-  .piano{position:relative;height:140px;margin-top:12px;user-select:none;overflow-x:auto;white-space:nowrap;border-radius:8px;padding:6px 0;background:#000}
-  .pkeys{position:relative;display:inline-flex;height:128px;padding:0 6px}
-  .wkey{position:relative;width:26px;height:128px;background:linear-gradient(#fafafa,#dcdcdc);border:1px solid #000;border-radius:0 0 5px 5px;margin-right:1px}
-  .wkey.lit{box-shadow:0 0 0 2px var(--accent) inset}
-  .bkey{position:absolute;top:0;width:16px;height:78px;background:linear-gradient(#2a2a2a,#000);border-radius:0 0 4px 4px;z-index:2;border:1px solid #000}
-  .key.down{filter:brightness(.78)}
-  .keylbl{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:8px;color:#666;pointer-events:none}
+  .pill.err{color:var(--pink)}
   .small{font-size:12px;color:var(--dim)}
   .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-  .notewall{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;min-height:26px}
-  .nchip{font-size:12px;padding:4px 10px;border-radius:9999px;background:var(--elev2);color:var(--txt);font-weight:700}
-  .stat{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
-  .stat div b{color:#fff;font-size:18px;font-weight:700}
-  .hidden{display:none}
-  details{margin-top:6px}
-  summary{cursor:pointer;color:var(--dim);font-size:13px}
-  .score{font-size:44px;font-weight:700;color:var(--accent)}
-  .note-feedback{font-size:14px;margin-top:6px;height:20px}
-  audio{width:100%;margin-top:12px}
-  .genprog{margin-top:14px}
-  .genprog-bar{height:6px;border-radius:9999px;background:var(--elev2);overflow:hidden}
-  .genprog-fill{height:100%;width:0;border-radius:9999px;background:linear-gradient(90deg,var(--blue),var(--purple),var(--orange));transition:width .45s ease}
-  .genprog-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin-top:7px}
+  label{font-size:13px;color:var(--txt2);display:block;margin:12px 0 6px;font-weight:600}
+  input,select,textarea{font-family:inherit;width:100%;background:rgba(255,255,255,.05);border:none;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);color:var(--txt);border-radius:12px;padding:11px 13px;font-size:13px;transition:box-shadow .15s}
+  input:focus,select:focus,textarea:focus{outline:none;box-shadow:inset 0 0 0 1.5px var(--purple)}
+  textarea{resize:vertical;min-height:64px;line-height:1.5}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+  /* chips */
+  .chipgrp{margin-bottom:14px}
+  .chipgrp .glabel{font-size:12.5px;font-weight:700;color:var(--dim);margin-bottom:8px;letter-spacing:.4px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{padding:8px 15px;border-radius:9999px;background:rgba(255,255,255,.06);color:var(--txt2);font-size:13px;
+    font-weight:700;box-shadow:inset 0 0 0 1px rgba(255,255,255,.13);transition:all .15s}
+  .chip:hover{color:#fff;transform:translateY(-1px)}
+  .chip.on{background:var(--grad);color:#fff;box-shadow:0 6px 16px var(--glow)}
+
+  /* piano */
+  .pianowrap{position:relative;margin-top:8px}
+  .pianowrap canvas{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:3}
+  .piano{position:relative;display:flex;justify-content:center;padding:58px 8px 10px;overflow-x:auto;
+    border-radius:18px;background:linear-gradient(180deg,rgba(0,0,0,.5),rgba(0,0,0,.78));box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+  .pkeys{position:relative;display:inline-flex;height:126px}
+  .wkey{position:relative;width:26px;height:126px;background:linear-gradient(#f6f6fb,#d6d6e2);border:1px solid #05050a;
+    border-radius:0 0 6px 6px;margin-right:1px}
+  .bkey{position:absolute;top:0;width:16px;height:78px;background:linear-gradient(#33333f,#08080e);border-radius:0 0 5px 5px;z-index:2;border:1px solid #000}
+  .key.down{filter:brightness(.8)}
+  .keylbl{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:8px;color:#7a7a90;pointer-events:none}
+
+  .notewall{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 4px;min-height:30px;justify-content:center}
+  .nchip{font-size:12px;padding:5px 11px;border-radius:9999px;background:linear-gradient(120deg,#4f8cff33,#a64bff33);
+    color:#fff;font-weight:700;box-shadow:inset 0 0 0 1px #a64bff44;animation:pop .25s ease}
+  @keyframes pop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+
+  .genprog{margin-top:16px}
+  .genprog-bar{height:7px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden}
+  .genprog-fill{height:100%;width:0;border-radius:9999px;background:var(--grad);transition:width .45s ease}
+  .genprog-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin-top:8px}
   #genPhase{color:var(--txt);font-weight:700}
-  .legend{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.5}
-  a{color:var(--accent)}
-  .langtoggle{position:fixed;top:16px;right:16px;z-index:50;background:rgba(18,18,18,.7);backdrop-filter:blur(6px);color:var(--txt);box-shadow:inset 0 0 0 1px var(--border-light);padding:7px 16px;font-size:13px;border-radius:9999px}
-  .langtoggle:hover{background:rgba(40,40,40,.85);box-shadow:inset 0 0 0 1px var(--txt)}
+  audio{width:100%;margin-top:14px}
+
+  /* HUD page3 */
+  .hud{display:flex;gap:24px;justify-content:center;margin:6px 0 2px}
+  .hud div{text-align:center}
+  .hud .v{font-size:30px;font-weight:800;line-height:1.1}
+  .hud .v.score{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hud .k{font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.5px}
+  .wfhint{text-align:center;font-size:13px;color:var(--txt2);margin:4px 0 2px;min-height:20px;font-weight:600}
+
+  .hidden{display:none!important}
+  .legend{font-size:11px;color:var(--dim);margin-top:10px;line-height:1.5;text-align:center}
+
+  /* settings modal */
+  .modal-back{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.62);backdrop-filter:blur(5px);
+    display:none;align-items:center;justify-content:center}
+  .modal-back.show{display:flex}
+  .modal{width:min(580px,93vw);max-height:88vh;overflow:auto;background:#14141f;border:1px solid rgba(255,255,255,.1);
+    border-radius:22px;padding:24px;box-shadow:var(--shadow-dialog)}
+  .modal h3{margin:0 0 4px;font-size:18px;font-weight:800}
+  .modal .x{float:right;width:34px;height:34px;border-radius:50%;padding:0;font-size:16px}
+  details{margin-top:10px}
+  summary{cursor:pointer;color:var(--txt2);font-size:13px;font-weight:600}
+  a{color:var(--blue)}
 </style>
 </head>
 <body>
-<button id="langBtn" class="langtoggle">EN</button>
-<div class="wrap">
-  <h1><span data-i18n="title">动机即歌</span> <span class="em">· Suno × PartyKeys</span></h1>
-  <div class="sub" data-i18n="tagline">弹一个动机 → AI 配一支乐队 → 灯光带你把它弹熟。原型 v0.1（无设备也能玩：用电脑键盘或点屏幕钢琴）</div>
+<div class="bgfx"></div>
+<button id="gearBtn" class="topbtn" title="设置">⚙️</button>
+<button id="langBtn" class="topbtn">EN</button>
 
-  <!-- ===== 设置 ===== -->
-  <div class="card">
-    <h2><span data-i18n="settings">⚙️ 设置</span> <span class="badge" id="midiBadge">MIDI: …</span></h2>
-    <div class="row" style="margin-bottom:8px">
+<div class="stage">
+  <div class="header">
+    <div class="brand"><span class="gtext" data-i18n="title">动机即歌</span><span class="em">Suno × PartyKeys</span></div>
+    <div class="steps">
+      <span class="dot" data-step="0"></span>
+      <span class="dot" data-step="1"></span>
+      <span class="dot" data-step="2"></span>
+    </div>
+    <div class="stepname" id="stepName"></div>
+  </div>
+
+  <div class="deck" id="deck">
+
+    <!-- ===== PAGE 1 · 弹动机 ===== -->
+    <section class="page" data-page="0">
+      <div class="panel">
+        <h2 data-i18n="p1Title">🎹 弹一个动机</h2>
+        <p class="desc" data-i18n="p1Desc">点「开始录制」，在键盘上弹 4–8 个音（屏幕钢琴 / 电脑键盘 A S D F G… / PartyKeys 都行），光球会跟着你跳动。弹完再点一下结束。</p>
+        <div class="row" style="justify-content:center">
+          <button class="btn-primary" id="recBtn">▶️ 开始录制</button>
+          <button class="btn-ghost" id="clearBtn" data-i18n="clear">清空</button>
+          <span class="pill" id="recHint"></span>
+        </div>
+        <div class="notewall" id="noteWall"></div>
+        <div class="pianowrap" id="pianoWrap1">
+          <canvas id="orbCanvas"></canvas>
+          <div class="piano" id="piano1"></div>
+        </div>
+        <div class="legend" data-i18n="kbLegend">电脑键盘：A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5</div>
+        <div class="navrow">
+          <span></span>
+          <button class="btn-primary" id="next1" disabled data-i18n="next">下一步 →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PAGE 2 · 调提示词 ===== -->
+    <section class="page" data-page="1">
+      <div class="panel">
+        <h2 data-i18n="p2Title">🎨 调一调你的歌</h2>
+        <p class="desc" data-i18n="p2Desc">点选风格、速度、乐器和人声，它们会自动写进下面的提示词。满意了就生成。</p>
+        <div class="chipgrp"><div class="glabel" data-i18n="grpStyle">风格</div><div class="chips" id="chips-style"></div></div>
+        <div class="chipgrp"><div class="glabel" data-i18n="grpTempo">速度</div><div class="chips" id="chips-tempo"></div></div>
+        <div class="chipgrp"><div class="glabel" data-i18n="grpInst">主要乐器（可多选）</div><div class="chips" id="chips-inst"></div></div>
+        <div class="chipgrp"><div class="glabel" data-i18n="grpVocal">人声</div><div class="chips" id="chips-vocal"></div></div>
+        <label data-i18n="promptLabel">Suno 提示词（可手动修改）</label>
+        <textarea id="promptBox" data-i18n-ph="promptPh" placeholder=""></textarea>
+        <div class="row" style="margin-top:12px">
+          <button class="btn-primary" id="genBtn" data-i18n="genBtn">🎵 生成歌曲</button>
+          <span class="pill" id="genStatus" data-i18n="genIdle">未开始</span>
+        </div>
+        <div class="genprog hidden" id="genProgress">
+          <div class="genprog-bar"><div class="genprog-fill" id="genFill"></div></div>
+          <div class="genprog-meta"><span id="genPhase">…</span><span id="genElapsed" class="mono">0s</span></div>
+        </div>
+        <audio id="player" controls class="hidden"></audio>
+        <div class="navrow">
+          <button class="btn-ghost" id="back2" data-i18n="back">← 上一步</button>
+          <button class="btn-primary" id="next2" data-i18n="next">下一步 →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PAGE 3 · 跟弹瀑布流 ===== -->
+    <section class="page" data-page="2">
+      <div class="panel">
+        <h2 data-i18n="p3Title">✨ 跟着光弹</h2>
+        <p class="desc" data-i18n="p3Desc">伴奏在放，主旋律从上往下落。音符停在判定线、对应琴键亮起时就弹它——弹对灯灭、音符消除，下一个亮起。按自己的节奏来。</p>
+        <div class="hud">
+          <div><div class="v" id="progN">0/0</div><div class="k" data-i18n="statProg">进度</div></div>
+          <div><div class="v" id="comboN">0</div><div class="k" data-i18n="statCombo">连击</div></div>
+          <div><div class="v score" id="scoreN">—</div><div class="k" data-i18n="statScore">得分</div></div>
+        </div>
+        <div class="wfhint" id="wfHint"></div>
+        <div class="pianowrap" id="playfield3">
+          <canvas id="wfCanvas" style="position:relative;display:block;width:100%;height:240px"></canvas>
+          <div class="piano" id="piano3" style="margin-top:-2px"></div>
+        </div>
+        <div class="row" style="justify-content:center;margin-top:12px">
+          <button class="btn-ghost" id="backingBtn" data-i18n="backingPause">⏸ 暂停伴奏</button>
+          <button class="btn-ghost" id="restartBtn" data-i18n="restart">🔄 重来</button>
+        </div>
+        <div class="navrow">
+          <button class="btn-ghost" id="back3" data-i18n="back">← 上一步</button>
+          <span></span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ===== settings modal ===== -->
+<div class="modal-back" id="settingsModal">
+  <div class="modal">
+    <button class="x btn-ghost" id="closeSettings">✕</button>
+    <h3 data-i18n="settings">⚙️ 设置</h3>
+    <div class="row" style="margin:10px 0">
+      <span class="pill" id="midiBadge">MIDI: …</span>
       <span class="pill" id="pillDevice">—</span>
       <span class="pill" id="pillKey">—</span>
       <span class="pill" id="pillBpm">—</span>
     </div>
-    <div class="row" style="margin-bottom:6px">
-      <label style="margin:0" data-i18n="ledProto">PartyKeys 灯光协议</label>
-      <select id="ledMode" style="width:auto">
+    <label data-i18n="ledProto">PartyKeys 灯光协议</label>
+    <div class="row">
+      <select id="ledMode" style="flex:1">
         <option value="classic" selected data-i18n="ledClassic">Classic CMD 0x71（现役游戏在用 · 最稳）</option>
         <option value="rgb" data-i18n="ledRgb">RGB CMD 0x15（protocol 站点新协议）</option>
       </select>
-      <button id="ledTestBtn" data-i18n="ledTest">💡 测试灯光</button>
-      <span class="small" id="ledHint"></span>
+      <button class="btn-ghost" id="ledTestBtn" data-i18n="ledTest">💡 测试灯光</button>
     </div>
-    <details>
+    <div class="small" id="ledHint" style="margin-top:6px"></div>
+    <details open>
       <summary data-i18n="sunoConn">Suno API 连接</summary>
-      <div class="grid2" style="margin-top:8px">
+      <div class="grid2" style="margin-top:10px">
         <div>
           <label data-i18n="connMode">连接方式</label>
           <select id="connMode">
@@ -111,96 +270,21 @@
           </select>
         </div>
         <div>
-          <label data-i18n="apiBase">请求地址（代理地址 / 直连填 https://api.suno.com）</label>
+          <label data-i18n="apiBase">请求地址</label>
           <input id="apiBase" type="text" value="http://localhost:8787">
         </div>
       </div>
-      <div class="grid2" style="margin-top:8px">
-        <div>
-          <label data-i18n="apiKey">API Key（仅"直连"需要 · 仅存内存）</label>
-          <input id="apiKey" type="password" placeholder="sk_live_..." data-i18n-ph="apiKeyPh">
-        </div>
-        <div>
-          <label data-i18n="voice">人声（啊啊啊 · 无歌词）</label>
-          <select id="voiceSel">
-            <option value="" data-i18n="voiceNone">不要人声（纯伴奏）</option>
-            <option value="5b915c6d-8d96-416c-9755-eba65868cfef" selected data-i18n="voiceA">预设 A · 女声</option>
-            <option value="c036ce3a-55e4-4690-9b8d-4516b37a96d5" data-i18n="voiceB">预设 B · 怪小孩</option>
-            <option value="27f5465b-73c3-4134-b11e-70b0bd571c6c" data-i18n="voiceC">预设 C · 低男声</option>
-          </select>
-        </div>
-      </div>
-      <div>
-        <label data-i18n="genre">风格</label>
-        <select id="genreSel">
-          <option>lo-fi hip hop, mellow, cozy</option>
-          <option>dream pop, warm, hopeful</option>
-          <option>cinematic, uplifting, strings</option>
-          <option>city pop, bright, groovy</option>
-          <option>acoustic folk, gentle</option>
-          <option>synthwave, neon, driving</option>
-        </select>
-      </div>
-      <div class="legend" data-i18n="proxyLegend">代理模式：跑随附的 <span class="mono">local-proxy.mjs</span>（<span class="mono">node local-proxy.mjs sk_live_你的key</span>，请求地址填 http://localhost:8787），或把 <span class="mono">api/suno.js</span> 部署到 Vercel。代理藏住密钥 + 解决 CORS。生成失败会自动降级为内置伴奏，闭环照跑。</div>
-    </details>
-  </div>
-
-  <!-- ===== 步骤1 ===== -->
-  <div class="card">
-    <h2><span class="step-no">1</span> <span data-i18n="step1Title">弹一个动机</span></h2>
-    <div class="small" data-i18n="step1Desc">点 ▶️ 开始录，弹 4–8 个音（点屏幕钢琴 / 电脑键盘 A W S E D F T G…/ PartyKeys 都行），再点 ⏹ 结束。</div>
-    <div class="row" style="margin-top:10px">
-      <button class="btn-primary" id="recBtn">▶️ 开始录制</button>
-      <button id="clearBtn" data-i18n="clear">清空</button>
-      <span class="small" id="recHint"></span>
-    </div>
-    <div class="notewall" id="noteWall"></div>
-    <div class="piano" id="piano"></div>
-    <div class="legend" data-i18n="kbLegend">电脑键盘映射（约一个八度）：A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5</div>
-  </div>
-
-  <!-- ===== 步骤2 ===== -->
-  <div class="card">
-    <h2><span class="step-no">2</span> <span data-i18n="step2Title">AI 读懂你的动机 → 生成歌曲</span></h2>
-    <label data-i18n="promptLabel">自动生成的 Suno Prompt（可改）</label>
-    <textarea id="promptBox" placeholder="" data-i18n-ph="promptPh"></textarea>
-    <label data-i18n="lyricsLabel">人声内容（啊啊啊，无歌词）</label>
-    <textarea id="lyricsBox">[Verse]
+      <label data-i18n="apiKey">API Key（仅"直连"需要 · 仅存内存）</label>
+      <input id="apiKey" type="password" placeholder="sk_live_..." data-i18n-ph="apiKeyPh">
+      <label data-i18n="lyricsLabel">人声内容（啊啊啊，无歌词）</label>
+      <textarea id="lyricsBox">[Verse]
 Ah ah ah, ah-ah ah
 Ooh ah ah, la-ah ah
 [Chorus]
 Ah ah ah-ah, ooh-ah
 Ah ah ah-ah, la la</textarea>
-    <div class="row" style="margin-top:10px">
-      <button class="btn-blue" id="genBtn" disabled data-i18n="genBtn">🎵 生成歌曲</button>
-      <span class="pill" id="genStatus" data-i18n="genIdle">未开始</span>
-    </div>
-    <div class="genprog hidden" id="genProgress">
-      <div class="genprog-bar"><div class="genprog-fill" id="genFill"></div></div>
-      <div class="genprog-meta"><span id="genPhase">…</span><span id="genElapsed" class="mono">0s</span></div>
-    </div>
-    <audio id="player" controls class="hidden"></audio>
-  </div>
-
-  <!-- ===== 步骤3 ===== -->
-  <div class="card">
-    <h2><span class="step-no">3</span> <span data-i18n="step3Title">灯光带你跟弹</span></h2>
-    <div class="small" data-i18n="step3Desc">先「示范」看灯光回放你的动机，再「跟弹」——灯亮就弹对应的键，系统给你打分。</div>
-    <div class="row" style="margin-top:10px">
-      <button class="btn-green" id="watchBtn" disabled data-i18n="watchBtn">👀 示范一遍</button>
-      <button class="btn-primary" id="playBtn" disabled data-i18n="playBtn">🎹 我来跟弹</button>
-    </div>
-    <div class="note-feedback" id="feedback"></div>
-    <div class="stat">
-      <div><span class="small" data-i18n="statProg">进度</span><br><b id="progN">0/0</b></div>
-      <div><span class="small" data-i18n="statHit">命中</span><br><b id="hitN">0</b></div>
-      <div><span class="small" data-i18n="statScore">得分</span><br><span class="score" id="scoreN">—</span></div>
-    </div>
-  </div>
-
-  <div class="sub" style="text-align:center;margin-top:20px" data-i18n="footer">
-    原型说明：教学旋律 = 你自己弹的动机（MIDI 真值，零转录）。Suno 只负责配伴奏/人声。<br>
-    LED 走 PartyKeys CMD 0x15；无设备时用屏幕钢琴演示同样的灯光逻辑。
+      <div class="legend" data-i18n="proxyLegend" style="text-align:left">代理模式：跑随附的 <span class="mono">local-proxy.mjs</span>（<span class="mono">node local-proxy.mjs sk_live_你的key</span>），或把 <span class="mono">api/suno.js</span> 部署到 Vercel。代理藏住密钥 + 解决 CORS。生成失败会自动降级为内置伴奏。</div>
+    </details>
   </div>
 </div>
 
@@ -242,9 +326,7 @@ function detectKey(notes){
   if(!notes.length) return {tonic:0,mode:"major",name:"C major"};
   const hist=new Array(12).fill(0);
   notes.forEach(n=>{ hist[n.note%12] += Math.max(0.05,(n.dur||0.3)); });
-  const corr=(prof,shift)=>{
-    let s=0; for(let i=0;i<12;i++) s+=hist[(i+shift)%12]*prof[i]; return s;
-  };
+  const corr=(prof,shift)=>{ let s=0; for(let i=0;i<12;i++) s+=hist[(i+shift)%12]*prof[i]; return s; };
   let best={score:-1};
   for(let k=0;k<12;k++){
     const ma=corr(MAJ,k), mi=corr(MIN,k);
@@ -261,79 +343,70 @@ function detectBpm(notes){
   const iois=[]; for(let i=1;i<ons.length;i++){ const d=ons[i]-ons[i-1]; if(d>0.06) iois.push(d); }
   if(!iois.length) return 90;
   iois.sort((a,b)=>a-b);
-  let beat=iois[Math.floor(iois.length/2)];          // 秒/拍（近似）
-  while(beat<0.30) beat*=2;  while(beat>1.20) beat/=2; // 折到合理范围
+  let beat=iois[Math.floor(iois.length/2)];
+  while(beat<0.30) beat*=2;  while(beat>1.20) beat/=2;
   return Math.max(60,Math.min(160,Math.round(60/beat)));
-}
-
-/* ---------- Prompt 构造 ---------- */
-function buildPrompt(notes, genre){
-  const k=detectKey(notes), bpm=detectBpm(notes);
-  const mood = k.mode==="minor" ? "introspective, a touch melancholic" : "warm, hopeful";
-  return `${genre}, ${k.name}, around ${bpm} bpm, ${mood}, gentle wordless "ah" vocals, simple and beginner-friendly`;
 }
 
 /* ---------- LED：双协议（classic CMD 0x71 颜色ID / rgb CMD 0x15）---------- */
 const MFR=[0xF0,0x05,0x30,0x7F,0x7F,0x20,0x00];
 const enc = v => [Math.floor(v/128), v%128];
-
-// classic：现役 16 款游戏在用（CLAUDE.md）。颜色为固定 ID，音符用真实 MIDI 号(48–83)。
 const CID={red:0x01,amber:0x05,green:0x07,cyan:0x08,blue:0x09,purple:0x0C};
-// rgb：protocol.partykeys.org 新协议。24bit RGB，键索引 0–35。
 const RGB={red:[255,40,40],amber:[255,180,20],green:[20,220,120],cyan:[20,200,200],blue:[40,90,255],purple:[170,60,255]};
-const HEX={red:"#c98a86",amber:"#cc9b78",green:"#8fae8f",cyan:"#7fb0ad",blue:"#7e96c2",purple:"#9a8cc4"};
-
-function classicFrame(pairs){ // pairs:[[midiNote,colorId],...] — CMD 0x71
-  const msg=[...MFR,0x71,pairs.length];
-  for(const [n,c] of pairs) msg.push(n,c);
-  msg.push(0xF7); return msg;
-}
-function rgbFrame(groups){ // groups:[{rgb:[r,g,b],keys:[idx...]}] — CMD 0x15
-  const msg=[...MFR,0x15,groups.length];
+const HEX={red:"#ff5ea3",amber:"#ff8a3d",green:"#4f8cff",cyan:"#22d3ee",blue:"#4f8cff",purple:"#a64bff"};
+function classicFrame(pairs){ const msg=[...MFR,0x71,pairs.length]; for(const [n,c] of pairs) msg.push(n,c); msg.push(0xF7); return msg; }
+function rgbFrame(groups){ const msg=[...MFR,0x15,groups.length];
   for(const g of groups){ msg.push(...enc(g.rgb[0]),...enc(g.rgb[1]),...enc(g.rgb[2])); msg.push(g.keys.length,...g.keys); }
-  msg.push(0xF7); return msg;
-}
+  msg.push(0xF7); return msg; }
 const INIT_CLASSIC=[...MFR,0x0F,0x05,0xF7];
 const INIT_RGB=[...MFR,0x0F,0x01,0xF7];
 const LED_ALLOFF=[...MFR,0x71,0x00,0xF7];
-
 let LED_MODE="classic";
 function ledInit(){ sendSysex(LED_MODE==="classic"?INIT_CLASSIC:INIT_RGB); }
 function ledAllOff(){ sendSysex(LED_ALLOFF); }
-function lightNotes(notes,color){ // notes: 真实 MIDI 号数组；color: 名字
+function lightNotes(notes,color){
   if(!midiOut) return;
   if(LED_MODE==="classic") sendSysex(classicFrame(notes.map(n=>[n,CID[color]||0x07])));
   else sendSysex(rgbFrame([{rgb:RGB[color]||RGB.green,keys:notes.map(n=>n-LOW)}]));
 }
 
-/* expose pure fns for node test */
+/* ---------- Prompt 构造（结构化，供 node 校验沿用） ---------- */
+function buildPrompt(notes, genre){
+  const k=detectKey(notes), bpm=detectBpm(notes);
+  const mood = k.mode==="minor" ? "introspective, a touch melancholic" : "warm, hopeful";
+  return `${genre}, ${k.name}, around ${bpm} bpm, ${mood}, gentle wordless "ah" vocals, simple and beginner-friendly`;
+}
 window.__test={detectKey,detectBpm,buildPrompt,rgbFrame,classicFrame,enc,noteName};
 
 /* =========================================================================
-   以下是 UI / 设备 / 交互（浏览器环境）
+   UI / 设备 / 交互（浏览器环境）
    ========================================================================= */
 const $ = id => document.getElementById(id);
+const wait = ms => new Promise(r=>setTimeout(r,ms));
 let midiOut=null, isPartyKeys=false;
+let activePiano=null;            // 当前用于按键查询/点亮的 .piano 元素
 
 /* ---------- i18n ---------- */
 const I18N={
   zh:{
-    title:"动机即歌", tagline:"弹一个动机 → AI 配一支乐队 → 灯光带你把它弹熟。原型 v0.1（无设备也能玩：用电脑键盘或点屏幕钢琴）",
+    title:"动机即歌",
+    p1Title:"🎹 弹一个动机", p1Desc:"点「开始录制」，在键盘上弹 4–8 个音（屏幕钢琴 / 电脑键盘 A S D F G… / PartyKeys 都行），光球会跟着你跳动。弹完再点一下结束。",
+    p2Title:"🎨 调一调你的歌", p2Desc:"点选风格、速度、乐器和人声，它们会自动写进下面的提示词。满意了就生成。",
+    p3Title:"✨ 跟着光弹", p3Desc:"伴奏在放，主旋律从上往下落。音符停在判定线、对应琴键亮起时就弹它——弹对灯灭、音符消除，下一个亮起。按自己的节奏来。",
+    clear:"清空", next:"下一步 →", back:"← 上一步", restart:"🔄 重来",
+    grpStyle:"风格", grpTempo:"速度", grpInst:"主要乐器（可多选）", grpVocal:"人声",
+    promptLabel:"Suno 提示词（可手动修改）", promptPh:"先录一个动机…", lyricsLabel:"人声内容（啊啊啊，无歌词）",
+    genBtn:"🎵 生成歌曲", genIdle:"未开始",
+    statProg:"进度", statCombo:"连击", statScore:"得分",
+    backingPause:"⏸ 暂停伴奏", backingPlay:"▶ 播放伴奏",
     settings:"⚙️ 设置", ledProto:"PartyKeys 灯光协议",
     ledClassic:"Classic CMD 0x71（现役游戏在用 · 最稳）", ledRgb:"RGB CMD 0x15（protocol 站点新协议）",
     ledTest:"💡 测试灯光", sunoConn:"Suno API 连接", connMode:"连接方式",
     connDemo:"内置伴奏演示（不联网）", connProxy:"通过代理（推荐 · 本地或 Vercel）", connDirect:"直连 api.suno.com（多半被 CORS 拦，仅调试）",
-    apiBase:"请求地址（代理地址 / 直连填 https://api.suno.com）", apiKey:'API Key（仅"直连"需要 · 仅存内存）', apiKeyPh:"sk_live_...（代理模式留空）",
-    voice:"人声（啊啊啊 · 无歌词）", voiceNone:"不要人声（纯伴奏）", voiceA:"预设 A · 女声", voiceB:"预设 B · 怪小孩", voiceC:"预设 C · 低男声",
-    genre:"风格",
-    proxyLegend:'代理模式：跑随附的 <span class="mono">local-proxy.mjs</span>（<span class="mono">node local-proxy.mjs sk_live_你的key</span>，请求地址填 http://localhost:8787），或把 <span class="mono">api/suno.js</span> 部署到 Vercel。代理藏住密钥 + 解决 CORS。生成失败会自动降级为内置伴奏，闭环照跑。',
-    step1Title:"弹一个动机", step1Desc:"点 ▶️ 开始录，弹 4–8 个音（点屏幕钢琴 / 电脑键盘 A W S E D F T G…/ PartyKeys 都行），再点 ⏹ 结束。", clear:"清空",
-    kbLegend:"电脑键盘映射（约一个八度）：A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5",
-    step2Title:"AI 读懂你的动机 → 生成歌曲", promptLabel:"自动生成的 Suno Prompt（可改）", promptPh:"先录一个动机…", lyricsLabel:"人声内容（啊啊啊，无歌词）",
-    genBtn:"🎵 生成歌曲", genIdle:"未开始",
-    step3Title:"灯光带你跟弹", step3Desc:"先「示范」看灯光回放你的动机，再「跟弹」——灯亮就弹对应的键，系统给你打分。",
-    watchBtn:"👀 示范一遍", playBtn:"🎹 我来跟弹", statProg:"进度", statHit:"命中", statScore:"得分",
-    footer:"原型说明：教学旋律 = 你自己弹的动机（MIDI 真值，零转录）。Suno 只负责配伴奏/人声。<br>LED 走 PartyKeys CMD 0x15；无设备时用屏幕钢琴演示同样的灯光逻辑。",
+    apiBase:"请求地址", apiKey:'API Key（仅"直连"需要 · 仅存内存）', apiKeyPh:"sk_live_...（代理模式留空）",
+    proxyLegend:'代理模式：跑随附的 <span class="mono">local-proxy.mjs</span>（<span class="mono">node local-proxy.mjs sk_live_你的key</span>），或把 <span class="mono">api/suno.js</span> 部署到 Vercel。代理藏住密钥 + 解决 CORS。生成失败会自动降级为内置伴奏。',
+    kbLegend:"电脑键盘：A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5",
+    stepNames:["弹动机","调歌","跟弹"],
     midiPrefix:"MIDI: ", devPrefix:"设备: ", keyPrefix:"调性: ", bpmPrefix:"速度: ", dash:"—",
     midiChecking:"检测中…", midiPk:"PartyKeys 已连接", midiGeneric:"通用 MIDI 设备已连接", midiNone:"未检测到键盘（可用电脑键盘/屏幕钢琴）",
     midiDenied:"权限被拒（可用电脑键盘/屏幕钢琴）", midiUnsupported:"浏览器不支持 Web MIDI（用 Chrome/Edge）",
@@ -343,40 +416,44 @@ const I18N={
     phaseScoring:s=>`AI 配乐中…（${s}）`, phaseDone:"完成 ✓",
     genDemo:"内置伴奏演示模式", genDirectNeedKey:"直连需填 API Key", genSubmitting:"提交中…", genGenerating:id=>`生成中（${id}…）`,
     genPreview:"可试听（生成中）", genDone:"完成 ✓", genTimeout:"超时/失败 → 内置伴奏", genFail:m=>`失败(${m}) → 内置伴奏`,
-    fbCorrect:"✓ 对!", fbWrong:n=>`✗ 应弹 ${n}`, fbPlay:n=>`弹: ${n}`, scoreGreat:"🎉 太棒了!", scoreGood:"👍 不错，再练练", scoreTry:"💪 多练几次",
+    wfHint:"灯亮了就弹那个键 · 弹对灯灭，下一个亮起", wfReady:"准备好了就开始弹吧 🎶",
+    scoreGreat:"🎉 太棒了！整首拿下！", scoreGood:"👍 不错，再练练就更顺", scoreTry:"💪 多练几次会更好",
     ledSwitched:m=>`已切到 ${m} 协议`, ledNoOut:"没有 MIDI 输出设备（连上 PartyKeys 再试）",
     ledSent:"已发指令（约200ms后亮）。没亮就换另一个协议再点。", ledDone:"测试结束",
     btnLabel:"EN"
   },
   en:{
-    title:"Motif Song", tagline:"Play a motif → AI builds a band → lights teach you to play it back. Prototype v0.1 (works with no device: use your computer keyboard or the on-screen piano)",
-    settings:"⚙️ Settings", ledProto:"PartyKeys LED protocol",
-    ledClassic:"Classic CMD 0x71 (used by shipping games · most stable)", ledRgb:"RGB CMD 0x15 (new protocol from the protocol site)",
-    ledTest:"💡 Test lights", sunoConn:"Suno API connection", connMode:"Connection mode",
-    connDemo:"Built-in backing demo (offline)", connProxy:"Via proxy (recommended · local or Vercel)", connDirect:"Direct to api.suno.com (usually blocked by CORS, debug only)",
-    apiBase:"Request URL (proxy address / for direct use https://api.suno.com)", apiKey:'API Key (only for "Direct" · kept in memory only)', apiKeyPh:"sk_live_... (leave blank in proxy mode)",
-    voice:"Vocals (wordless \"ah\")", voiceNone:"No vocals (instrumental only)", voiceA:"Preset A · female", voiceB:"Preset B · quirky kid", voiceC:"Preset C · low male",
-    genre:"Style",
-    proxyLegend:'Proxy mode: run the bundled <span class="mono">local-proxy.mjs</span> (<span class="mono">node local-proxy.mjs sk_live_yourkey</span>, set request URL to http://localhost:8787), or deploy <span class="mono">api/suno.js</span> to Vercel. The proxy hides your key + fixes CORS. If generation fails it falls back to the built-in backing so the loop keeps running.',
-    step1Title:"Play a motif", step1Desc:"Hit ▶️ to record, play 4–8 notes (on-screen piano / computer keys A W S E D F T G… / PartyKeys all work), then hit ⏹ to stop.", clear:"Clear",
-    kbLegend:"Computer keyboard map (about one octave): A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5",
-    step2Title:"AI reads your motif → generates a song", promptLabel:"Auto-generated Suno prompt (editable)", promptPh:"Record a motif first…", lyricsLabel:"Vocal content (wordless \"ah\")",
+    title:"Motif Song",
+    p1Title:"🎹 Play a motif", p1Desc:"Hit Record and play 4–8 notes (on-screen piano / computer keys A S D F G… / PartyKeys). The orb sprite follows you. Tap again to stop.",
+    p2Title:"🎨 Tune your song", p2Desc:"Pick a style, tempo, instruments and vocals — they get written straight into the prompt below. Generate when happy.",
+    p3Title:"✨ Play along", p3Desc:"Backing plays while the melody falls from the top. When a note stops at the line and its key lights up, play it — correct hit clears the note and the light, then the next lights up. Go at your own pace.",
+    clear:"Clear", next:"Next →", back:"← Back", restart:"🔄 Restart",
+    grpStyle:"Style", grpTempo:"Tempo", grpInst:"Instruments (multi)", grpVocal:"Vocals",
+    promptLabel:"Suno prompt (editable)", promptPh:"Record a motif first…", lyricsLabel:"Vocal content (wordless \"ah\")",
     genBtn:"🎵 Generate song", genIdle:"Not started",
-    step3Title:"Lights teach you to play along", step3Desc:"First 'Demo' to watch the lights replay your motif, then 'Play along' — play the lit key and get scored.",
-    watchBtn:"👀 Demo once", playBtn:"🎹 Play along", statProg:"Progress", statHit:"Hits", statScore:"Score",
-    footer:"Prototype note: the teaching melody = the motif you played (MIDI ground truth, zero transcription). Suno only adds the backing/vocals.<br>LEDs use PartyKeys CMD 0x15; with no device the on-screen piano demos the same lighting logic.",
+    statProg:"Progress", statCombo:"Combo", statScore:"Score",
+    backingPause:"⏸ Pause backing", backingPlay:"▶ Play backing",
+    settings:"⚙️ Settings", ledProto:"PartyKeys LED protocol",
+    ledClassic:"Classic CMD 0x71 (used by shipping games · most stable)", ledRgb:"RGB CMD 0x15 (new protocol site)",
+    ledTest:"💡 Test lights", sunoConn:"Suno API connection", connMode:"Connection mode",
+    connDemo:"Built-in backing demo (offline)", connProxy:"Via proxy (recommended · local or Vercel)", connDirect:"Direct to api.suno.com (usually CORS-blocked, debug only)",
+    apiBase:"Request URL", apiKey:'API Key (only for "Direct" · in memory only)', apiKeyPh:"sk_live_... (blank in proxy mode)",
+    proxyLegend:'Proxy mode: run the bundled <span class="mono">local-proxy.mjs</span> (<span class="mono">node local-proxy.mjs sk_live_yourkey</span>) or deploy <span class="mono">api/suno.js</span> to Vercel. The proxy hides your key + fixes CORS. On failure it falls back to the built-in backing.',
+    kbLegend:"Computer keys: A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5",
+    stepNames:["Motif","Tune","Play"],
     midiPrefix:"MIDI: ", devPrefix:"Device: ", keyPrefix:"Key: ", bpmPrefix:"Tempo: ", dash:"—",
-    midiChecking:"checking…", midiPk:"PartyKeys connected", midiGeneric:"Generic MIDI device connected", midiNone:"No keyboard detected (use computer keyboard / on-screen piano)",
-    midiDenied:"permission denied (use computer keyboard / on-screen piano)", midiUnsupported:"Browser lacks Web MIDI (use Chrome/Edge)",
+    midiChecking:"checking…", midiPk:"PartyKeys connected", midiGeneric:"Generic MIDI device connected", midiNone:"No keyboard detected (use computer keys / on-screen piano)",
+    midiDenied:"permission denied (use computer keys / on-screen piano)", midiUnsupported:"Browser lacks Web MIDI (use Chrome/Edge)",
     devPk:"PartyKeys 36", devGeneric:"Generic MIDI", devNone:"None (screen mode)",
     recStart:"▶️ Start recording", recStop:"⏹ Stop recording", recing:"Recording… play your motif", recDone:n=>`Recorded ${n} note${n===1?"":"s"}`, recNone:"No notes recorded",
-    phaseSubmit:"Submitting to Suno…", phaseScore:"AI scoring…", phasePreview:"🎧 Preview ready (still refining…)", phasePreviewPlay:"🎧 Preview ready — hit ▶ to play",
+    phaseSubmit:"Submitting to Suno…", phaseScore:"AI scoring…", phasePreview:"🎧 Preview ready (refining…)", phasePreviewPlay:"🎧 Preview ready — hit ▶",
     phaseScoring:s=>`AI scoring… (${s})`, phaseDone:"Done ✓",
     genDemo:"Built-in backing demo mode", genDirectNeedKey:"Direct mode needs an API key", genSubmitting:"Submitting…", genGenerating:id=>`Generating (${id}…)`,
     genPreview:"Preview ready (generating)", genDone:"Done ✓", genTimeout:"Timeout/fail → built-in backing", genFail:m=>`Failed (${m}) → built-in backing`,
-    fbCorrect:"✓ Right!", fbWrong:n=>`✗ Play ${n}`, fbPlay:n=>`Play: ${n}`, scoreGreat:"🎉 Awesome!", scoreGood:"👍 Nice, keep practicing", scoreTry:"💪 Try a few more times",
+    wfHint:"Play the lit key · correct hit clears it, next lights up", wfReady:"Start playing whenever you're ready 🎶",
+    scoreGreat:"🎉 Awesome — you nailed it!", scoreGood:"👍 Nice, a bit more practice", scoreTry:"💪 Keep practicing, you'll get it",
     ledSwitched:m=>`Switched to ${m} protocol`, ledNoOut:"No MIDI output device (connect PartyKeys and retry)",
-    ledSent:"Command sent (lights ~200ms later). If nothing lights, switch protocol and tap again.", ledDone:"Test finished",
+    ledSent:"Command sent (~200ms). If nothing lights, switch protocol and tap again.", ledDone:"Test finished",
     btnLabel:"中文"
   }
 };
@@ -389,16 +466,17 @@ function applyI18nStatic(){
 function setLang(l){
   LANG=l; localStorage.setItem("motif_lang",l); document.documentElement.lang=l;
   applyI18nStatic(); $("langBtn").textContent=t("btnLabel"); document.title=t("title")+" · Suno × PartyKeys";
-  refreshDynamic();
+  renderAllChips(); refreshDynamic();
 }
-/* dynamic state for lang-aware re-render */
 let _midiKey="midiChecking", _devKey=null, _key=null, _bpm=null;
 function refreshDynamic(){
   $("midiBadge").textContent=t("midiPrefix")+t(_midiKey);
   $("pillDevice").textContent=_devKey?t("devPrefix")+t(_devKey):t("dash");
   $("pillKey").textContent=_key?t("keyPrefix")+_key.name:t("dash");
-  $("pillBpm").textContent=_bpm?t("bpmPrefix")+_bpm+" bpm":t("dash");
+  $("pillBpm").textContent=_bpm?t("bpmPrefix")+effectiveBpm()+" bpm":t("dash");
   $("recBtn").textContent=recording?t("recStop"):t("recStart");
+  $("stepName").textContent=t("stepNames")[curPage]||"";
+  $("backingBtn").textContent= (player().paused? t("backingPlay"): t("backingPause"));
 }
 
 /* ---------- MIDI 接入 ---------- */
@@ -419,40 +497,32 @@ function setMidi(key){ _midiKey=key; $("midiBadge").textContent=t("midiPrefix")+
 function setDevice(key){ _devKey=key; $("pillDevice").textContent=t("devPrefix")+t(key); }
 function sendSysex(arr){ if(midiOut){ try{ midiOut.send(arr); }catch(e){} } }
 function onMidi(e){
-  const [st,note,vel]=e.data;
-  const cmd=st&0xf0;
+  const [st,note,vel]=e.data, cmd=st&0xf0;
   if(cmd===0x90 && vel>0) handleDown(note);
   else if(cmd===0x80 || (cmd===0x90&&vel===0)) handleUp(note);
 }
 
 /* ---------- 屏幕钢琴 ---------- */
 const WHITE=[0,2,4,5,7,9,11], BLACKAFTER={0:1,2:3,5:6,7:8,9:10};
-function buildPiano(){
-  const el=$("piano"); el.innerHTML="";
+function buildPiano(el){
+  el.innerHTML="";
   const inner=document.createElement("div"); inner.className="pkeys";
-  let whiteIdx=0;
   for(let m=LOW;m<=HIGH;m++){
-    const pc=m%12;
-    if(WHITE.includes(pc)){
+    if(WHITE.includes(m%12)){
       const w=document.createElement("div"); w.className="wkey key"; w.dataset.note=m;
-      w.innerHTML=`<span class="keylbl">${pc===0?noteName(m):""}</span>`;
-      bindKey(w,m); inner.appendChild(w); whiteIdx++;
+      w.innerHTML=`<span class="keylbl">${m%12===0?noteName(m):""}</span>`;
+      bindKey(w,m); inner.appendChild(w);
     }
   }
-  // black keys overlay
   el.appendChild(inner);
-  // place blacks after building whites
-  requestAnimationFrame(()=>{
-    const whites=[...inner.querySelectorAll(".wkey")];
-    whites.forEach(w=>{
-      const m=+w.dataset.note, pc=m%12;
-      if(BLACKAFTER[pc]!==undefined && (m+1)<=HIGH){
-        const bm=m+1;
-        const b=document.createElement("div"); b.className="bkey key"; b.dataset.note=bm;
-        b.style.left=(w.offsetLeft + w.offsetWidth - 8)+"px";
-        bindKey(b,bm); inner.appendChild(b);
-      }
-    });
+  // create black keys synchronously; reading offsetLeft forces layout so positions are correct
+  [...inner.querySelectorAll(".wkey")].forEach(w=>{
+    const m=+w.dataset.note, pc=m%12;
+    if(BLACKAFTER[pc]!==undefined && (m+1)<=HIGH){
+      const b=document.createElement("div"); b.className="bkey key"; b.dataset.note=m+1;
+      b.style.left=(w.offsetLeft + w.offsetWidth - 8)+"px";
+      bindKey(b,m+1); inner.appendChild(b);
+    }
   });
 }
 function bindKey(el,m){
@@ -462,9 +532,10 @@ function bindKey(el,m){
   el.addEventListener("touchstart",ev=>{ev.preventDefault();handleDown(m);},{passive:false});
   el.addEventListener("touchend",ev=>{ev.preventDefault();handleUp(m);},{passive:false});
 }
-function keyEl(m){ return document.querySelector(`.key[data-note="${m}"]`); }
-function litOn(m,color){ const e=keyEl(m); if(e){ e.classList.add("lit"); e.style.boxShadow=`0 0 0 3px ${color} inset, 0 0 14px ${color}`; } }
+function keyEl(m){ return activePiano ? activePiano.querySelector(`.key[data-note="${m}"]`) : null; }
+function litOn(m,color){ const e=keyEl(m); if(e){ e.classList.add("lit"); e.style.boxShadow=`0 0 0 3px ${color} inset, 0 0 18px ${color}`; } }
 function litOff(m){ const e=keyEl(m); if(e){ e.classList.remove("lit"); e.style.boxShadow=""; } }
+function clearLights(){ if(!activePiano) return; activePiano.querySelectorAll(".key.lit").forEach(e=>{e.classList.remove("lit");e.style.boxShadow="";}); }
 
 /* computer keyboard */
 const KB={KeyA:60,KeyW:61,KeyS:62,KeyE:63,KeyD:64,KeyF:65,KeyT:66,KeyG:67,KeyY:68,KeyH:69,KeyU:70,KeyJ:71,KeyK:72};
@@ -478,8 +549,9 @@ function handleDown(m){
   if(m<LOW||m>HIGH) return;
   const el=keyEl(m); if(el) el.classList.add("down");
   playNote(m,0.7);
+  if(curPage===0) orbMoveToNote(m);
   if(recording){ active[m]=performance.now()/1000; }
-  if(awaitingPlay) checkPlay(m);
+  if(wf.active) wfHit(m);
 }
 function handleUp(m){
   const el=keyEl(m); if(el) el.classList.remove("down");
@@ -492,11 +564,11 @@ function handleUp(m){
 
 /* ---------- 录制 ---------- */
 $("recBtn").onclick=()=>{
-  audio(); // unlock
+  audio();
   if(!recording){
     recording=true; captured=[]; active={}; recStart=performance.now()/1000;
     $("recBtn").textContent=t("recStop"); $("recBtn").classList.remove("btn-primary");
-    $("recHint").textContent=t("recing");
+    $("recHint").textContent=t("recing"); $("next1").disabled=true;
     renderNotes();
   } else {
     recording=false;
@@ -505,26 +577,88 @@ $("recBtn").onclick=()=>{
     finalizeMotif();
   }
 };
-$("clearBtn").onclick=()=>{ captured=[]; renderNotes(); resetTeach(); $("genBtn").disabled=true; $("promptBox").value=""; };
+$("clearBtn").onclick=()=>{ captured=[]; renderNotes(); $("next1").disabled=true; _key=null;_bpm=null; refreshDynamic(); };
 
 function renderNotes(){
   const w=$("noteWall"); w.innerHTML="";
-  captured.sort((a,b)=>a.on-b.on).forEach(n=>{
+  captured.slice().sort((a,b)=>a.on-b.on).forEach(n=>{
     const c=document.createElement("span"); c.className="nchip"; c.textContent=noteName(n.note); w.appendChild(c);
   });
 }
 function finalizeMotif(){
   if(!captured.length) return;
-  const k=detectKey(captured), bpm=detectBpm(captured);
-  _key=k; _bpm=bpm;
-  $("pillKey").textContent=t("keyPrefix")+k.name;
-  $("pillBpm").textContent=t("bpmPrefix")+bpm+" bpm";
-  $("promptBox").value=buildPrompt(captured,$("genreSel").value);
-  $("genBtn").disabled=false;
-  $("watchBtn").disabled=false; $("playBtn").disabled=false;
+  _key=detectKey(captured); _bpm=detectBpm(captured);
+  refreshDynamic(); composePrompt();
+  $("next1").disabled=false;
+}
+
+/* ---------- 提示词构造器（chips） ---------- */
+const CHIPS={
+  style:{single:true, items:[
+    {v:"lo-fi hip hop, mellow, cozy",zh:"Lo-fi",en:"Lo-fi"},
+    {v:"dream pop, warm, hopeful",zh:"梦幻流行",en:"Dream pop"},
+    {v:"cinematic, uplifting, strings",zh:"电影感",en:"Cinematic"},
+    {v:"city pop, bright, groovy",zh:"都市流行",en:"City pop"},
+    {v:"acoustic folk, gentle",zh:"民谣",en:"Folk"},
+    {v:"synthwave, neon, driving",zh:"合成波",en:"Synthwave"},
+    {v:"warm R&B, smooth, soulful",zh:"R&B",en:"R&B"},
+    {v:"epic orchestral, grand",zh:"史诗管弦",en:"Orchestral"}
+  ]},
+  tempo:{single:true, items:[
+    {bpm:0,zh:"自动",en:"Auto"},
+    {bpm:70,zh:"慢",en:"Slow"},
+    {bpm:95,zh:"中",en:"Mid"},
+    {bpm:130,zh:"快",en:"Fast"}
+  ]},
+  inst:{single:false, items:[
+    {v:"warm piano",zh:"钢琴",en:"Piano"},
+    {v:"acoustic guitar",zh:"吉他",en:"Guitar"},
+    {v:"lush strings",zh:"弦乐",en:"Strings"},
+    {v:"analog synth",zh:"合成器",en:"Synth"},
+    {v:"soft drums",zh:"鼓组",en:"Drums"},
+    {v:"deep bass",zh:"贝斯",en:"Bass"},
+    {v:"glockenspiel bells",zh:"钟琴",en:"Bells"},
+    {v:"smooth saxophone",zh:"萨克斯",en:"Sax"}
+  ]},
+  vocal:{single:true, items:[
+    {voice:"5b915c6d-8d96-416c-9755-eba65868cfef",desc:'gentle wordless "ah" female vocals',zh:"女声",en:"Female"},
+    {voice:"27f5465b-73c3-4134-b11e-70b0bd571c6c",desc:'gentle wordless "ah" male vocals',zh:"男声",en:"Male"},
+    {voice:"c036ce3a-55e4-4690-9b8d-4516b37a96d5",desc:'quirky wordless "ah" child-like vocals',zh:"童声",en:"Kid"},
+    {voice:"",desc:"instrumental only, no vocals",zh:"纯伴奏",en:"Instrumental"}
+  ]}
+};
+const SEL={style:0, tempo:0, inst:new Set(), vocal:0};
+let selVoice=CHIPS.vocal.items[0].voice;
+function effectiveBpm(){ const o=CHIPS.tempo.items[SEL.tempo].bpm; return o||_bpm||90; }
+function renderChips(key){
+  const box=$("chips-"+key), grp=CHIPS[key]; if(!box) return;
+  box.innerHTML="";
+  grp.items.forEach((it,i)=>{
+    const b=document.createElement("button"); b.className="chip"; b.type="button";
+    b.textContent=LANG==="zh"?it.zh:it.en;
+    const on = grp.single ? SEL[key]===i : SEL.inst.has(i);
+    if(on) b.classList.add("on");
+    b.onclick=()=>{
+      if(grp.single){ SEL[key]=i; } else { if(SEL.inst.has(i)) SEL.inst.delete(i); else SEL.inst.add(i); }
+      if(key==="vocal") selVoice=grp.items[i].voice;
+      renderChips(key); composePrompt(); refreshDynamic();
+    };
+    box.appendChild(b);
+  });
+}
+function renderAllChips(){ ["style","tempo","inst","vocal"].forEach(renderChips); }
+function composePrompt(){
+  const k=_key||{name:"C major",mode:"major"};
+  const mood = k.mode==="minor" ? "introspective, a touch melancholic" : "warm, hopeful";
+  const inst=[...SEL.inst].map(i=>CHIPS.inst.items[i].v);
+  const parts=[ CHIPS.style.items[SEL.style].v, k.name, "around "+effectiveBpm()+" bpm", mood ];
+  if(inst.length) parts.push("featuring "+inst.join(" and "));
+  parts.push(CHIPS.vocal.items[SEL.vocal].desc, "simple and beginner-friendly");
+  $("promptBox").value=parts.filter(Boolean).join(", ");
 }
 
 /* ---------- 生成（Suno: demo / proxy / direct + 降级） ---------- */
+function player(){ return $("player"); }
 $("genBtn").onclick=generate;
 function sunoUrl(base,mode,path){ return mode==="proxy" ? base+"?path="+encodeURIComponent(path) : base+path; }
 function sunoHeaders(mode,key){ const h={"Content-Type":"application/json"}; if(mode==="direct"&&key) h["Authorization"]="Bearer "+key; return h; }
@@ -535,7 +669,7 @@ async function generate(){
   const base=$("apiBase").value.trim().replace(/\/$/,"");
   const key=$("apiKey").value.trim();
   if(mode==="direct"&&!key){ setGen(t("genDirectNeedKey"),"err"); return; }
-  const style=$("promptBox").value.trim(), voice=$("voiceSel").value, lyrics=$("lyricsBox").value.trim();
+  const style=$("promptBox").value.trim(), voice=selVoice, lyrics=$("lyricsBox").value.trim();
   const body={ style, title:"My Motif Song" };
   if(voice){ body.lyrics=lyrics; body.voice_id=voice; } else { body.instrumental=true; }
   $("genBtn").disabled=true; gotStreaming=false; startGenProgress();
@@ -552,16 +686,13 @@ async function generate(){
     setGen(t("genFail",err.message),"err"); finishGenProgress(false); fallbackBacking();
   }finally{ $("genBtn").disabled=false; }
 }
-// 持续轮询到 complete；一旦 streaming 出 audio_url 就立刻加载并试听（抢跑），之后继续精修到最终版。
 async function pollAudio(base,mode,key,id){
   let lastUrl="";
   for(let i=0;i<60;i++){
     await wait(1500);
     let j;
-    try{
-      const r=await fetch(sunoUrl(base,mode,"/v0/audio/"+id),{headers:sunoHeaders(mode,key)});
-      j=await r.json();
-    }catch(e){ continue; }                 // 瞬时网络抖动：继续轮询而非放弃
+    try{ const r=await fetch(sunoUrl(base,mode,"/v0/audio/"+id),{headers:sunoHeaders(mode,key)}); j=await r.json(); }
+    catch(e){ continue; }
     if(j.status==="error") return false;
     if(j.audio_url && j.audio_url!==lastUrl){ lastUrl=j.audio_url; loadAudio(j.audio_url); }
     if(j.status==="streaming" && !gotStreaming){
@@ -570,127 +701,283 @@ async function pollAudio(base,mode,key,id){
     if(j.status==="complete" && j.audio_url) return true;
     if(!gotStreaming) setPhase(t("phaseScoring",j.status||"…"));
   }
-  return !!lastUrl;                          // 超时但已拿到可用音频，也算成功
+  return !!lastUrl;
 }
-function tryPreviewPlay(){ const p=$("player"); p.play().catch(()=>setPhase(t("phasePreviewPlay"))); }
+function tryPreviewPlay(){ const p=player(); p.play().catch(()=>setPhase(t("phasePreviewPlay"))); }
 function loadAudio(url){
-  const p=$("player");
-  const wasPlaying=!p.paused && !p.ended, t=p.currentTime||0;
+  const p=player(); const wasPlaying=!p.paused && !p.ended, tt=p.currentTime||0;
   p.src=url; p.classList.remove("hidden"); backingMode="file";
-  if(wasPlaying){ p.addEventListener("loadedmetadata",()=>{ try{p.currentTime=t;}catch(_){} p.play().catch(()=>{}); },{once:true}); }
+  if(wasPlaying){ p.addEventListener("loadedmetadata",()=>{ try{p.currentTime=tt;}catch(_){} p.play().catch(()=>{}); },{once:true}); }
 }
-/* ---------- 生成进度 UI ---------- */
 function startGenProgress(){
   genStart=performance.now(); $("genProgress").classList.remove("hidden"); $("genFill").style.width="0%";
   clearInterval(genTimer);
   genTimer=setInterval(()=>{
     const s=(performance.now()-genStart)/1000; $("genElapsed").textContent=Math.floor(s)+"s";
-    if(!gotStreaming) bumpProgress(Math.min(75, s/45*75));   // 无真实进度 → 按 ~45s 预期平滑爬到 75%
+    if(!gotStreaming) bumpProgress(Math.min(75, s/45*75));
   },300);
 }
 function bumpProgress(pct){ const f=$("genFill"); if(pct>(parseFloat(f.style.width)||0)) f.style.width=pct+"%"; }
-function setPhase(t){ $("genPhase").textContent=t; }
+function setPhase(x){ $("genPhase").textContent=x; }
 function finishGenProgress(ok){
   clearInterval(genTimer); genTimer=null; $("genFill").style.width=ok?"100%":"0%";
   if(ok) setTimeout(()=>$("genProgress").classList.add("hidden"),2500); else $("genProgress").classList.add("hidden");
 }
-function setGen(t,c){ const e=$("genStatus"); e.textContent=t; e.className="pill "+(c||""); }
+function setGen(x,c){ const e=$("genStatus"); e.textContent=x; e.className="pill "+(c||""); }
 
-/* ---------- 内置伴奏（降级）：用检测到的调做和弦垫 ---------- */
+/* ---------- 伴奏：file / builtin pad ---------- */
 let backingMode="none", backingTimer=null;
-function fallbackBacking(){
-  backingMode="builtin";
-  $("player").classList.add("hidden");
-}
+function fallbackBacking(){ backingMode="builtin"; player().classList.add("hidden"); }
 function startBacking(){
-  if(backingMode==="file"){ const p=$("player"); p.currentTime=0; p.play().catch(()=>{}); return; }
-  // builtin pad loop in detected key
-  const k=detectKey(captured); const root=48+k.tonic;
-  const triad = k.mode==="minor" ? [0,3,7] : [0,4,7];
-  const prog=[0,5,7,5]; let step=0;
-  stopBacking();
+  if(backingMode==="file"){ const p=player(); try{p.currentTime=0;}catch(_){} p.play().catch(()=>{}); return; }
+  const k=_key||detectKey(captured); const root=48+(k.tonic||0);
+  const triad = (k.mode==="minor") ? [0,3,7] : [0,4,7];
+  const prog=[0,5,7,5]; let step=0; stopBacking();
+  const beat = 60000/effectiveBpm()*2;
   backingTimer=setInterval(()=>{
     const base=root+prog[step%prog.length];
     triad.forEach(iv=> piano(mtof(base+iv),1.1,0.05));
     step++;
-  },900);
+  }, Math.max(500,beat));
 }
-function stopBacking(){ if(backingTimer){clearInterval(backingTimer);backingTimer=null;} const p=$("player"); if(!p.classList.contains("hidden")) p.pause(); }
+function stopBacking(){ if(backingTimer){clearInterval(backingTimer);backingTimer=null;} const p=player(); if(backingMode==="file") p.pause(); }
+$("backingBtn").onclick=()=>{
+  if(backingMode==="file"){ const p=player(); if(p.paused) p.play().catch(()=>{}); else p.pause(); }
+  else { if(backingTimer) stopBacking(); else startBacking(); }
+  refreshDynamic();
+};
 
-/* ---------- 跟弹教学 ---------- */
-let awaitingPlay=false, teachIdx=0, teachSeq=[], hits=0, startedAt=0;
-function seq(){ return captured.slice().sort((a,b)=>a.on-b.on); }
+/* =========================================================================
+   光球 orb（page1）
+   ========================================================================= */
+function setupCanvas(c){
+  const dpr=window.devicePixelRatio||1, r=c.getBoundingClientRect();
+  c.width=Math.max(1,r.width*dpr); c.height=Math.max(1,r.height*dpr);
+  const ctx=c.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w:r.width,h:r.height};
+}
+function keyRelXY(m,canvas){
+  const k=keyEl(m); if(!k) return null;
+  const kr=k.getBoundingClientRect(), cr=canvas.getBoundingClientRect();
+  return {x:kr.left-cr.left+kr.width/2, top:kr.top-cr.top, h:kr.height};
+}
+const orb={x:0,y:0,p0:null,p1:null,p2:null,t0:0,dur:0,trail:[],phase:0};
+let orbRAF=null;
+function orbMoveToNote(m){
+  const c=$("orbCanvas"), pos=keyRelXY(m,c); if(!pos) return;
+  const tx=pos.x, ty=24;
+  orb.p0={x:orb.x,y:orb.y}; orb.p2={x:tx,y:ty};
+  const dx=tx-orb.x, dy=ty-orb.y, len=Math.hypot(dx,dy)||1;
+  const arc=Math.min(110,len*0.55)*(orb.x<tx?-1:1);
+  orb.p1={x:(orb.x+tx)/2 - dy/len*0, y:(orb.y+ty)/2 - Math.abs(arc) - 28};
+  orb.p1.x=(orb.x+tx)/2 + (-dy/len)*arc;
+  orb.t0=performance.now(); orb.dur=Math.max(240,Math.min(560,len*1.5));
+}
+function orbFrame(now){
+  const c=$("orbCanvas"); const r=c.getBoundingClientRect();
+  if(c.width!==Math.round(r.width*(window.devicePixelRatio||1))) setupCanvas(c);
+  const ctx=c.getContext("2d"), w=r.width, h=r.height;
+  ctx.clearRect(0,0,w,h);
+  orb.phase+=0.06;
+  if(orb.p2 && orb.dur){
+    let u=(now-orb.t0)/orb.dur; if(u>1)u=1;
+    const e=u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2, mt=1-e;
+    orb.x=mt*mt*orb.p0.x+2*mt*e*orb.p1.x+e*e*orb.p2.x;
+    orb.y=mt*mt*orb.p0.y+2*mt*e*orb.p1.y+e*e*orb.p2.y;
+    if(u>=1) orb.dur=0;
+  } else { orb.y=24+Math.sin(orb.phase)*4; }   // idle bob
+  if(orb.x===0&&orb.y===0){ orb.x=w/2; orb.y=24; }
+  orb.trail.push({x:orb.x,y:orb.y}); if(orb.trail.length>20) orb.trail.shift();
+  // trail
+  orb.trail.forEach((p,i)=>{
+    const a=(i/orb.trail.length); const rad=3+a*7;
+    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,rad);
+    g.addColorStop(0,`rgba(166,75,255,${0.10+a*0.35})`); g.addColorStop(1,"rgba(166,75,255,0)");
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.x,p.y,rad,0,7); ctx.fill();
+  });
+  // orb body
+  const R=12+Math.sin(orb.phase)*1.5;
+  const g2=ctx.createRadialGradient(orb.x-3,orb.y-3,1,orb.x,orb.y,R*2.4);
+  g2.addColorStop(0,"#ffffff"); g2.addColorStop(.35,"#7fb0ff"); g2.addColorStop(.7,"#a64bff"); g2.addColorStop(1,"rgba(255,138,61,0)");
+  ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(orb.x,orb.y,R*2.2,0,7); ctx.fill();
+  ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(orb.x,orb.y,R*0.5,0,7); ctx.fill();
+  orbRAF=requestAnimationFrame(orbFrame);
+}
+function startOrb(){ stopOrb(); const c=$("orbCanvas"); const r=c.getBoundingClientRect(); if(orb.x===0){orb.x=r.width/2;orb.y=24;} orbRAF=requestAnimationFrame(orbFrame); }
+function stopOrb(){ if(orbRAF){ cancelAnimationFrame(orbRAF); orbRAF=null; } }
 
-$("watchBtn").onclick=async()=>{
-  resetTeach(); const s=seq(); ledInit();
-  for(const n of s){
-    litOn(n.note,HEX.blue); lightNotes([n.note],"green"); playNote(n.note,0.5);
-    await wait(Math.min(700, (n.dur*1000)||450));
-    litOff(n.note); ledAllOff();
-    await wait(120);
+/* =========================================================================
+   瀑布流跟弹 wf（page3）— 自己节奏
+   ========================================================================= */
+const wf={active:false, notes:[], idx:0, tiles:[], parts:[], litNote:null, hits:0, combo:0, raf:null, holdY:0, gap:58, tileW:46, tileH:34};
+const WF_COLORS=[["#4f8cff","#7fb0ff"],["#a64bff","#c98aff"],["#ff8a3d","#ffb072"],["#ff5ea3","#ff97c4"]];
+function buildSongNotes(){
+  const base=captured.slice().sort((a,b)=>a.on-b.on).map(n=>n.note);
+  if(!base.length) return [60,62,64,65];
+  const loops=Math.max(2, Math.ceil(14/base.length));
+  let out=[]; for(let l=0;l<loops;l++) out=out.concat(base);
+  return out;
+}
+function wfStart(){
+  wfStop();
+  activePiano=$("piano3"); clearLights(); ledInit();
+  wf.notes=buildSongNotes(); wf.idx=0; wf.tiles=[]; wf.parts=[]; wf.litNote=null; wf.hits=0; wf.combo=0;
+  const c=$("wfCanvas"); const r=c.getBoundingClientRect(); wf.holdY=r.height-wf.tileH-6;
+  wf.tiles=wf.notes.map((note,i)=>({note, x:0, y:-120 - i*wf.gap, slotShown:false}));
+  layoutTileX();
+  $("progN").textContent="0/"+wf.notes.length; $("comboN").textContent="0"; $("scoreN").textContent="—";
+  $("wfHint").textContent=t("wfReady");
+  wf.active=true; startBacking(); wf.raf=requestAnimationFrame(wfFrame);
+}
+function wfStop(){
+  wf.active=false; if(wf.raf){cancelAnimationFrame(wf.raf); wf.raf=null;}
+  if(wf.litNote!=null){ litOff(wf.litNote); ledAllOff(); wf.litNote=null; }
+  stopBacking();
+}
+function layoutTileX(){
+  const c=$("wfCanvas");
+  wf.tiles.forEach(tl=>{ const p=keyRelXY(tl.note,c); tl.x = p? p.x : c.getBoundingClientRect().width/2; });
+}
+function wfFrame(){
+  const c=$("wfCanvas"); const dpr=window.devicePixelRatio||1; const r=c.getBoundingClientRect();
+  if(c.width!==Math.round(r.width*dpr)||c.height!==Math.round(r.height*dpr)){ c.width=r.width*dpr; c.height=r.height*dpr; layoutTileX(); wf.holdY=r.height-wf.tileH-6; }
+  const ctx=c.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+  const w=r.width, h=r.height; ctx.clearRect(0,0,w,h);
+
+  // judgment line
+  const ly=wf.holdY+wf.tileH+2;
+  const lg=ctx.createLinearGradient(0,0,w,0); lg.addColorStop(0,"#4f8cff");lg.addColorStop(.5,"#a64bff");lg.addColorStop(1,"#ff8a3d");
+  ctx.strokeStyle=lg; ctx.lineWidth=2; ctx.globalAlpha=.9; ctx.beginPath(); ctx.moveTo(8,ly); ctx.lineTo(w-8,ly); ctx.stroke(); ctx.globalAlpha=1;
+
+  // tiles (front = idx)
+  for(let i=wf.idx;i<wf.notes.length && i<wf.idx+6;i++){
+    const tl=wf.tiles[i], slot=i-wf.idx;
+    const targetY = wf.holdY - slot*wf.gap;
+    tl.y += (targetY - tl.y)*0.16;
+    const front = (i===wf.idx);
+    if(front && Math.abs(tl.y-wf.holdY)<3 && wf.litNote!==tl.note){
+      if(wf.litNote!=null) litOff(wf.litNote);
+      wf.litNote=tl.note; litOn(tl.note,HEX.purple); lightNotes([tl.note],"purple");
+      $("wfHint").textContent=t("wfHint");
+    }
+    drawTile(ctx,tl.x,tl.y,tl.note,front,slot);
   }
-};
-$("playBtn").onclick=()=>{
-  resetTeach(); teachSeq=seq(); awaitingPlay=true; teachIdx=0; hits=0; startedAt=performance.now();
-  ledInit(); startBacking(); cueNext();
-};
-function cueNext(){
-  clearLights();
-  if(teachIdx>=teachSeq.length){ finishTeach(); return; }
-  const n=teachSeq[teachIdx];
-  litOn(n.note,HEX.purple); lightNotes([n.note],"purple");
-  $("progN").textContent=teachIdx+"/"+teachSeq.length;
-  $("feedback").textContent=t("fbPlay",noteName(n.note));
+  // particles
+  wf.parts=wf.parts.filter(p=>p.life>0);
+  wf.parts.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.18; p.life-=0.025;
+    ctx.globalAlpha=Math.max(0,p.life); ctx.fillStyle=p.c;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill();
+  });
+  ctx.globalAlpha=1;
+  wf.raf=requestAnimationFrame(wfFrame);
 }
-function checkPlay(m){
-  if(teachIdx>=teachSeq.length) return;
-  const target=teachSeq[teachIdx].note;
+function drawTile(ctx,x,y,note,front,slot){
+  const w=wf.tileW, h=wf.tileH, rad=10; const col=WF_COLORS[slot%WF_COLORS.length];
+  const x0=x-w/2;
+  ctx.save();
+  if(front){ ctx.shadowColor=col[0]; ctx.shadowBlur=22; }
+  const g=ctx.createLinearGradient(x0,y,x0,y+h); g.addColorStop(0,col[1]); g.addColorStop(1,col[0]);
+  ctx.fillStyle=g; ctx.globalAlpha=front?1:Math.max(.35,1-slot*0.16);
+  roundRect(ctx,x0,y,w,h,rad); ctx.fill();
+  ctx.restore();
+  if(front){ ctx.strokeStyle="rgba(255,255,255,.85)"; ctx.lineWidth=2; roundRect(ctx,x0,y,w,h,rad); ctx.stroke(); }
+  ctx.fillStyle="#fff"; ctx.globalAlpha=front?1:0.7; ctx.font="700 13px -apple-system,sans-serif";
+  ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(noteName(note),x,y+h/2); ctx.globalAlpha=1;
+}
+function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function burst(x,y){
+  const cols=["#4f8cff","#a64bff","#ff8a3d","#ff5ea3","#ffffff"];
+  for(let i=0;i<22;i++){ const a=Math.random()*7, sp=2+Math.random()*4;
+    wf.parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-2,r:2+Math.random()*3,life:1,c:cols[i%cols.length]}); }
+}
+function wfHit(m){
+  if(!wf.active || wf.idx>=wf.notes.length) return;
+  const target=wf.notes[wf.idx];
   if(m===target){
-    hits++; $("hitN").textContent=hits;
-    $("feedback").innerHTML='<span style="color:var(--accent)">'+t("fbCorrect")+'</span>';
+    const tl=wf.tiles[wf.idx]; burst(tl.x, wf.holdY+wf.tileH/2);
+    litOff(target); ledAllOff(); wf.litNote=null;
+    wf.hits++; wf.combo++; wf.idx++;
+    $("progN").textContent=wf.idx+"/"+wf.notes.length; $("comboN").textContent=wf.combo;
+    if(wf.idx>=wf.notes.length) wfFinish();
   } else {
-    $("feedback").innerHTML='<span style="color:var(--red)">'+t("fbWrong",noteName(target))+'</span>';
+    wf.combo=0; $("comboN").textContent="0";
+    const c=$("wfCanvas"); c.animate?c.animate([{transform:"translateX(-4px)"},{transform:"translateX(4px)"},{transform:"none"}],{duration:140}):0;
   }
-  teachIdx++; setTimeout(cueNext,140);
 }
-function finishTeach(){
-  awaitingPlay=false; clearLights(); stopBacking(); ledAllOff();
-  const pct=Math.round(100*hits/Math.max(1,teachSeq.length));
+function wfFinish(){
+  const pct=Math.round(100*wf.hits/Math.max(1,wf.notes.length));
   $("scoreN").textContent=pct;
-  $("feedback").innerHTML = pct>=80?t("scoreGreat"):(pct>=50?t("scoreGood"):t("scoreTry"));
+  $("wfHint").textContent = pct>=80?t("scoreGreat"):(pct>=50?t("scoreGood"):t("scoreTry"));
+  for(let i=0;i<3;i++) setTimeout(()=>burst(($("wfCanvas").getBoundingClientRect().width)*(0.3+0.2*i), 60+i*20), i*180);
+  wf.active=false; if(wf.litNote!=null){litOff(wf.litNote);ledAllOff();wf.litNote=null;}
 }
-function resetTeach(){ awaitingPlay=false; teachIdx=0; hits=0; clearLights(); stopBacking();
-  $("progN").textContent="0/0"; $("hitN").textContent="0"; $("scoreN").textContent="—"; $("feedback").textContent=""; }
-function clearLights(){ document.querySelectorAll(".key.lit").forEach(e=>{e.classList.remove("lit");e.style.boxShadow="";}); }
-const wait = ms => new Promise(r=>setTimeout(r,ms));
+$("restartBtn").onclick=()=>{ if(curPage===2) wfStart(); };
 
-/* ---------- 灯光测试 + 协议切换 ---------- */
+/* ---------- 灯光测试 + 协议切换（设置弹窗） ---------- */
 $("ledMode").onchange=()=>{ LED_MODE=$("ledMode").value; if(midiOut){ ledInit(); $("ledHint").textContent=t("ledSwitched",LED_MODE); } };
 $("ledTestBtn").onclick=async()=>{
-  if(!midiOut){ $("ledHint").textContent=t("ledNoOut"); return; }
+  activePiano=activePiano||$("piano1");
+  if(!midiOut){ $("ledHint").textContent=t("ledNoOut"); }
   LED_MODE=$("ledMode").value; ledInit(); await wait(80);
   const cols=["red","amber","green","cyan","blue","purple"];
-  for(let i=0;i<cols.length;i++){
-    const a=LOW+i*6, b=Math.min(HIGH,LOW+i*6+3);
-    lightNotes([a,b],cols[i]); litOn(a,HEX[cols[i]]); litOn(b,HEX[cols[i]]);
-  }
+  for(let i=0;i<cols.length;i++){ const a=LOW+i*6,b=Math.min(HIGH,LOW+i*6+3);
+    lightNotes([a,b],cols[i]); litOn(a,HEX[cols[i]]); litOn(b,HEX[cols[i]]); }
   $("ledHint").textContent=t("ledSent");
   await wait(1600); ledAllOff(); clearLights(); $("ledHint").textContent=t("ledDone");
 };
 
-/* ---------- 按环境智能设默认连接方式 ---------- */
+/* ---------- 设置弹窗 ---------- */
+$("gearBtn").onclick=()=> $("settingsModal").classList.add("show");
+$("closeSettings").onclick=()=> $("settingsModal").classList.remove("show");
+$("settingsModal").addEventListener("click",e=>{ if(e.target.id==="settingsModal") $("settingsModal").classList.remove("show"); });
+
+/* ---------- 向导导航 ---------- */
+let curPage=0;
+function showPage(i){
+  if(i===curPage) return;
+  onLeavePage(curPage);
+  curPage=i;
+  document.querySelectorAll(".page").forEach((p,idx)=>{
+    p.classList.toggle("active", idx===i);
+    p.classList.toggle("left", idx<i);
+  });
+  document.querySelectorAll(".dot").forEach((d,idx)=> d.classList.toggle("on", idx<=i));
+  onEnterPage(i); refreshDynamic();
+}
+function onLeavePage(i){ if(i===0) stopOrb(); if(i===2) wfStop(); }
+function onEnterPage(i){
+  if(i===0){ activePiano=$("piano1"); startOrb(); }
+  if(i===1){ composePrompt(); }
+  if(i===2){ activePiano=$("piano3"); if(backingMode==="none") backingMode="builtin"; wfStart(); }
+}
+$("next1").onclick=()=>showPage(1);
+$("back2").onclick=()=>showPage(0);
+$("next2").onclick=()=>showPage(2);
+$("back3").onclick=()=>showPage(1);
+
+/* ---------- 智能默认连接方式 ---------- */
 (function smartDefaults(){
   const isFile = location.protocol==="file:";
   const local = location.hostname==="localhost"||location.hostname==="127.0.0.1";
-  if(isFile){ $("connMode").value="demo"; }                                   // 双击本地文件 → 内置演示
-  else if(local){ $("connMode").value="proxy"; $("apiBase").value="http://localhost:8787"; } // 本地 dev → 本地代理
-  else { $("connMode").value="proxy"; $("apiBase").value="/api/suno"; }       // 已部署 → 同源 Vercel 函数
+  if(isFile){ $("connMode").value="demo"; }
+  else if(local){ $("connMode").value="proxy"; $("apiBase").value="http://localhost:8787"; }
+  else { $("connMode").value="proxy"; $("apiBase").value="/api/suno"; }
 })();
 
 /* ---------- init ---------- */
 $("langBtn").onclick=()=>setLang(LANG==="zh"?"en":"zh");
+buildPiano($("piano1")); buildPiano($("piano3"));
+activePiano=$("piano1");
+renderAllChips();
 setLang(LANG);
-buildPiano(); initMidi();
+initMidi();
+showPageInit();
+function showPageInit(){
+  document.querySelector('.page[data-page="0"]').classList.add("active");
+  document.querySelector('.dot[data-step="0"]').classList.add("on");
+  onEnterPage(0); refreshDynamic();
+}
 window.addEventListener("beforeunload",()=> ledAllOff());
 </script>
 </body>
