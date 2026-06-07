@@ -25,12 +25,25 @@ import json
 import os
 import sys
 import re
+import ssl
 import uuid
 import glob
 import threading
 import subprocess
 import tempfile
 import urllib.request
+
+# macOS 上 Homebrew/python.org 的 Python 常缺 CA 根证书，会导致下载 https 音频时
+# CERTIFICATE_VERIFY_FAILED。优先用 certifi 的证书包，没有再退回系统默认。
+# 关键：同时把 SSL_CERT_FILE 设进环境变量——这样 demucs 子进程下载模型权重
+# （从 fbaipublicfiles CDN）时，它内部的 urllib/torch 也用这套证书，不然会同样报错。
+try:
+    import certifi
+    SSL_CTX = ssl.create_default_context(cafile=certifi.where())
+    os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+    os.environ.setdefault("REQUESTS_CA_BUNDLE", certifi.where())
+except Exception:
+    SSL_CTX = ssl.create_default_context()
 
 PORT = int(os.environ.get("PORT", "8788"))
 MODEL = os.environ.get("DEMUCS_MODEL", "htdemucs")  # 默认模型，可换 htdemucs_ft 等
@@ -47,7 +60,7 @@ AUDIO_TYPES = {".mp3": "audio/mpeg", ".wav": "audio/wav", ".flac": "audio/flac",
 
 def download(url, dest):
     req = urllib.request.Request(url, headers={"User-Agent": "motif-demucs/1.0"})
-    with urllib.request.urlopen(req, timeout=120) as r, open(dest, "wb") as f:
+    with urllib.request.urlopen(req, timeout=120, context=SSL_CTX) as r, open(dest, "wb") as f:
         while True:
             chunk = r.read(1 << 16)
             if not chunk:

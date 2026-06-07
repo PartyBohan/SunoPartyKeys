@@ -89,13 +89,21 @@ App 内置两套灯光协议，设置区有「💡 测试灯光」按钮：
 
 随附的 `demucs-server.py` 在你自己机器上跑 Facebook 的 [Demucs](https://github.com/facebookresearch/demucs)，把整曲拆成人声 + 伴奏。纯本地、不联外部 API、无密钥。
 
+**用 Python 3.11 的虚拟环境装**（demucs 依赖 PyTorch；Python 3.13/3.14 太新还没 torch 轮子，会装不上）：
+
 ```bash
-pip install -U demucs      # 会带上 torch
-brew install ffmpeg        # demucs 读写 mp3 需要 ffmpeg
-python3 demucs-server.py   # 默认 http://localhost:8788
+brew install ffmpeg python@3.11        # demucs 读写 mp3 需要 ffmpeg
+python3.11 -m venv .venv               # 在项目里建独立环境
+.venv/bin/python -m pip install -U demucs "numpy<2" certifi
+.venv/bin/python demucs-server.py      # 默认 http://localhost:8788
 ```
 
-App 设置里：**分轨后端 = Demucs 本地**，地址保持 `http://localhost:8788`。CPU 上一首歌约 30–90 秒。**只在本机能用**（线上 game.partykeys.org 不行——模型太重，跑不动浏览器/Vercel）。没起服务则降级用整首伴奏。
+注意三个本机坑（脚本/上面命令已处理好）：
+- `numpy<2`：torch 2.2.x 不兼容 numpy 2.x，否则 demucs 报 `Numpy is not available`。
+- `certifi`：macOS 的 Homebrew Python 缺 CA 根证书，否则下载 Suno 音频 / demucs 下模型会 `CERTIFICATE_VERIFY_FAILED`（`demucs-server.py` 会用 certifi 的证书包并设 `SSL_CERT_FILE`）。
+- 用 venv 的 `python`（不是裸 `python3`）来启动服务，保证 demucs 装在哪就用哪。
+
+App 设置里 **分轨后端 = Demucs 本地**（localhost 打开时已默认选中），地址保持 `http://localhost:8788`。首跑会下 htdemucs 模型（约 84MB，缓存到 `~/.cache/torch`，之后免下）；CPU 上一首歌约 1 分钟。**只在本机能用**（线上 game.partykeys.org 不行——模型太重，跑不动浏览器/Vercel）。没起服务则降级用整首伴奏。
 
 ### B) music.ai（云端 · 线上可用）
 

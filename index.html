@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>动机即歌 · Suno × PartyKeys</title>
+<title>光音成曲 · Shine Up, Notes On</title>
 <style>
   /* ===== vibrant blue–purple–orange mixed theme ===== */
   :root{
@@ -40,9 +40,10 @@
 
   .stage{position:relative;z-index:2;height:100vh;display:flex;flex-direction:column;padding:18px 16px 10px}
   .header{text-align:center;flex:0 0 auto}
-  .brand{font-size:22px;font-weight:800;letter-spacing:-.3px}
+  .brand{font-size:34px;font-weight:600;letter-spacing:-.3px;line-height:1.1}
+  .brand .gtext b{font-weight:900}
   .gtext{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .brand .em{font-size:13px;color:var(--dim);font-weight:600;margin-left:6px}
+  .brand .em{display:block;font-size:14px;color:var(--dim);font-weight:600;margin:6px 0 0}
   .steps{display:flex;gap:8px;justify-content:center;margin:12px 0 4px}
   .dot{width:30px;height:5px;border-radius:9999px;background:rgba(255,255,255,.14);transition:background .4s}
   .dot.on{background:var(--grad)}
@@ -54,9 +55,9 @@
   .page.active{opacity:1;transform:none;pointer-events:auto}
   .page.left{transform:translateX(-64px) scale(.95);opacity:0}
 
-  .panel{width:100%;max-width:880px;margin:auto;position:relative;overflow:hidden;
+  .panel{width:100%;max-width:1280px;margin:auto;position:relative;overflow:hidden;
     background:var(--panel);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08);
-    border-radius:24px;padding:24px 26px;box-shadow:0 24px 64px rgba(0,0,0,.5)}
+    border-radius:24px;padding:28px 34px;box-shadow:0 24px 64px rgba(0,0,0,.5)}
   .panel::before{content:"";position:absolute;left:0;top:0;right:0;height:4px;background:var(--grad)}
   .panel h2{margin:0 0 4px;font-size:20px;font-weight:800}
   .panel .desc{color:var(--txt2);font-size:13.5px;margin:0 0 16px;line-height:1.5}
@@ -96,14 +97,50 @@
   /* piano */
   .pianowrap{position:relative;margin-top:8px}
   .pianowrap canvas{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:3}
-  .piano{position:relative;display:flex;justify-content:center;padding:58px 8px 10px;overflow-x:auto;
+  .piano{position:relative;display:block;padding:60px 0 14px;overflow:hidden;
     border-radius:18px;background:linear-gradient(180deg,rgba(0,0,0,.5),rgba(0,0,0,.78));box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
-  .pkeys{position:relative;display:inline-flex;height:126px}
-  .wkey{position:relative;width:26px;height:126px;background:linear-gradient(#f6f6fb,#d6d6e2);border:1px solid #05050a;
-    border-radius:0 0 6px 6px;margin-right:1px}
-  .bkey{position:absolute;top:0;width:16px;height:78px;background:linear-gradient(#33333f,#08080e);border-radius:0 0 5px 5px;z-index:2;border:1px solid #000}
+  .pkeys{position:relative;display:flex;width:100%;height:158px}
+  .wkey{position:relative;flex:1 1 0;min-width:0;height:158px;background:linear-gradient(#f6f6fb,#d6d6e2);border:1px solid #05050a;
+    border-radius:0 0 6px 6px;margin-right:2px}
+  .wkey:last-child{margin-right:0}
+  .bkey{position:absolute;top:0;height:98px;background:linear-gradient(#33333f,#08080e);border-radius:0 0 5px 5px;z-index:2;border:1px solid #000}
   .key.down{filter:brightness(.8)}
+  .key.lit{transition:box-shadow .08s ease}
   .keylbl{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:8px;color:#7a7a90;pointer-events:none}
+
+  /* waterfall (GPU-composited DOM notes — no per-frame canvas redraw) */
+  #wfField{position:relative;height:340px;border-radius:14px;overflow:hidden;
+    background:linear-gradient(180deg,rgba(20,16,48,0),rgba(34,22,78,.22))}
+  #wfNotes,#wfBurst{position:absolute;inset:0;pointer-events:none}
+  #wfLine{position:absolute;left:8px;right:8px;height:3px;border-radius:3px;pointer-events:none;
+    background:linear-gradient(90deg,#4f8cff,#a64bff,#ff8a3d);opacity:.9;box-shadow:0 0 14px rgba(166,75,255,.6)}
+  .wfn{position:absolute;top:0;width:58px;height:58px;margin-left:-29px;border-radius:50%;
+    will-change:transform;contain:layout style paint;
+    background:radial-gradient(circle at 50% 50%, rgba(255,255,255,.96) 0, rgba(255,255,255,.55) 17%, rgba(var(--c),0) 44%),
+               radial-gradient(circle at 50% 50%, rgba(var(--c),.6) 0, rgba(var(--c),0) 70%);
+    animation:wffall linear both}
+  #wfField.paused .wfn{animation-play-state:paused}
+  .wfn.wait{box-shadow:0 0 0 3px rgba(255,255,255,.85),0 0 26px rgba(var(--c),.9);animation-play-state:paused}
+  .wfn .lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font:700 15px -apple-system,sans-serif;color:#fff;text-shadow:0 0 5px rgba(0,0,0,.55)}
+  .wfn.tail::before{content:"";position:absolute;left:50%;bottom:50%;width:12px;height:var(--tail);
+    margin-left:-6px;border-radius:12px;background:linear-gradient(180deg,rgba(var(--c),0),rgba(var(--c),.45));z-index:-1}
+  .wfn.hit{opacity:0;transition:opacity .25s}
+  .wfn.miss{opacity:0;transition:opacity .25s}
+  @keyframes wffall{from{transform:translate3d(0,var(--y0),0)}to{transform:translate3d(0,var(--y1),0)}}
+  .wfb{position:absolute;width:7px;height:7px;border-radius:50%;background:rgb(var(--c));
+    will-change:transform,opacity;animation:wfb .62s ease-out forwards}
+  .wfb.big{width:11px;height:11px;box-shadow:0 0 10px rgb(var(--c));animation-duration:1.1s}
+  @keyframes wfb{from{transform:translate(0,0) scale(1);opacity:1}
+    to{transform:translate(var(--dx),var(--dy)) scale(.3);opacity:0}}
+  #wfField.shake{animation:wfshake .12s}
+  @keyframes wfshake{0%{transform:translateX(-4px)}50%{transform:translateX(4px)}100%{transform:none}}
+  .wfcele{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;pointer-events:none;padding-bottom:96px}
+  .celebig{font:800 clamp(38px,7vw,72px)/1 -apple-system,sans-serif;letter-spacing:.5px;
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 26px rgba(166,75,255,.55));animation:celepop .6s cubic-bezier(.2,1.3,.4,1) both}
+  .celesub{font:700 19px -apple-system,sans-serif;color:#fff;opacity:.94;text-shadow:0 0 10px rgba(0,0,0,.5);animation:celepop .6s .14s both}
+  @keyframes celepop{from{transform:scale(.4) translateY(22px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
 
   .notewall{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 4px;min-height:30px;justify-content:center}
   .nchip{font-size:12px;padding:5px 11px;border-radius:9999px;background:linear-gradient(120deg,#4f8cff33,#a64bff33);
@@ -114,6 +151,18 @@
   .genprog-bar{height:7px;border-radius:9999px;background:rgba(255,255,255,.08);overflow:hidden}
   .genprog-fill{height:100%;width:0;border-radius:9999px;background:var(--grad);transition:width .45s ease}
   .genprog-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);margin-top:8px}
+  .genwrap{display:flex;flex-direction:column;align-items:center;gap:12px;margin:24px 0 8px}
+  .genbtnbox{position:relative;display:inline-block;border-radius:9999px}
+  .genbig{position:relative;z-index:2;padding:16px 44px;font-size:18px;font-weight:800;letter-spacing:.3px;border-radius:9999px}
+  @property --genang{syntax:'<angle>';inherits:false;initial-value:0deg}
+  .genbtnbox.active::before,.genbtnbox.fading::before{content:"";position:absolute;inset:-2px;border-radius:9999px;z-index:0;padding:3px;
+    background:conic-gradient(from var(--genang),rgba(79,140,255,0) 0deg,#4f8cff 50deg,#a64bff 110deg,#ff8a3d 170deg,rgba(255,138,61,0) 235deg,rgba(79,140,255,0) 360deg);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+    mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;
+    filter:drop-shadow(0 0 4px rgba(166,75,255,.8));animation:genspin 1.5s linear infinite}
+  @keyframes genspin{to{--genang:360deg}}
+  .genbtnbox.fading::before{animation:genspin 1.5s linear infinite,genfade 1.4s ease forwards}
+  @keyframes genfade{to{opacity:0}}
   .stemmix{display:flex;flex-direction:column;gap:12px;margin-top:12px}
   .stemcard{display:flex;align-items:center;gap:14px;padding:13px 16px;border-radius:18px;
     background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);transition:opacity .25s,border-color .25s,box-shadow .25s,background .25s}
@@ -121,15 +170,9 @@
   .stemcard[data-stem="vocal"].solo{background:linear-gradient(120deg,#a64bff33,#ff5ea333)}
   .stemcard[data-stem="inst"].solo{background:linear-gradient(120deg,#4f8cff33,#22d3ee33)}
   .stemcard.muted{opacity:.4}
-  .stemcard .sname{font-weight:800;font-size:15px;min-width:92px;display:flex;align-items:center;gap:8px}
-  .eq{flex:1 1 auto;display:flex;align-items:flex-end;gap:4px;height:32px}
-  .eq i{flex:1;border-radius:3px;height:16%;background:var(--grad);opacity:.85}
-  .stemcard.playing:not(.muted) .eq i{animation:eqb .85s ease-in-out infinite}
-  .stemcard.muted .eq i{height:9%!important;animation:none;opacity:.5}
-  .eq i:nth-child(2){animation-delay:.12s} .eq i:nth-child(3){animation-delay:.24s}
-  .eq i:nth-child(4){animation-delay:.36s} .eq i:nth-child(5){animation-delay:.18s}
-  .eq i:nth-child(6){animation-delay:.30s} .eq i:nth-child(7){animation-delay:.06s}
-  @keyframes eqb{0%,100%{height:16%}50%{height:94%}}
+  .stemcard .sname{font-weight:800;font-size:15px;min-width:128px;display:flex;align-items:center;gap:8px}
+  .wave{flex:1 1 auto;display:block;width:100%;height:34px;opacity:.92}
+  .stemcard.muted .wave{opacity:.4}
   .stembtns{display:flex;gap:8px}
   .stembtns button{padding:7px 12px;font-size:12px;border-radius:9999px}
   .stemcard .lockhint{display:none;font-size:11px;font-weight:700;color:var(--dim);white-space:nowrap}
@@ -145,6 +188,12 @@
   .hud .v.score{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
   .hud .k{font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.5px}
   .wfhint{text-align:center;font-size:13px;color:var(--txt2);margin:4px 0 2px;min-height:20px;font-weight:600}
+  .wfmode{display:flex;justify-content:center;gap:0;margin:8px 0 2px}
+  .wfmode-btn{padding:7px 20px;font-size:13px;font-weight:700;cursor:pointer;color:var(--txt2);
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);transition:all .2s}
+  .wfmode-btn:first-child{border-radius:9999px 0 0 9999px;border-right:none}
+  .wfmode-btn:last-child{border-radius:0 9999px 9999px 0}
+  .wfmode-btn.active{background:var(--grad);color:#fff;border-color:transparent;box-shadow:0 6px 16px var(--glow)}
 
   .hidden{display:none!important}
   .legend{font-size:11px;color:var(--dim);margin-top:10px;line-height:1.5;text-align:center}
@@ -169,7 +218,7 @@
 
 <div class="stage">
   <div class="header">
-    <div class="brand"><span class="gtext" data-i18n="title">动机即歌</span><span class="em">Suno × PartyKeys</span></div>
+    <div class="brand"><span class="gtext" data-i18n="title">光音成曲</span><span class="em" data-i18n="sub">用 Suno 解开创造音乐的密码</span></div>
     <div class="steps">
       <span class="dot" data-step="0"></span>
       <span class="dot" data-step="1"></span>
@@ -215,8 +264,10 @@
         <div class="chipgrp"><div class="glabel" data-i18n="grpVocal">人声</div><div class="chips" id="chips-vocal"></div></div>
         <label data-i18n="promptLabel">Suno 提示词（可手动修改）</label>
         <textarea id="promptBox" data-i18n-ph="promptPh" placeholder=""></textarea>
-        <div class="row" style="margin-top:12px">
-          <button class="btn-primary" id="genBtn" data-i18n="genBtn">🎵 生成歌曲</button>
+        <div class="genwrap">
+          <div class="genbtnbox" id="genBtnBox">
+            <button class="btn-primary genbig" id="genBtn" data-i18n="genBtn">SUNO - Generate!</button>
+          </div>
           <span class="pill" id="genStatus" data-i18n="genIdle">未开始</span>
         </div>
         <div class="genprog hidden" id="genProgress">
@@ -242,17 +293,17 @@
         </div>
         <div class="stemmix" id="stemMix">
           <div class="stemcard" data-stem="vocal">
-            <span class="sname">🎤 <span data-i18n="stemVocal">主音</span></span>
+            <span class="sname">🎤 <span data-i18n="stemVocal">旋律</span></span>
             <span class="lockhint" data-i18n="stemLockHint">需 music.ai 分轨</span>
-            <span class="eq"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <canvas class="wave"></canvas>
             <span class="stembtns">
               <button class="btn-ghost stem-mute" data-i18n-title="stemMute">🔊</button>
             </span>
           </div>
           <div class="stemcard" data-stem="inst">
-            <span class="sname">🎸 <span data-i18n="stemInst">伴奏</span></span>
+            <span class="sname">🎸 <span data-i18n="stemInst">背景音乐</span></span>
             <span class="lockhint" data-i18n="stemLockHint">需 music.ai 分轨</span>
-            <span class="eq"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <canvas class="wave"></canvas>
             <span class="stembtns">
               <button class="btn-ghost stem-mute" data-i18n-title="stemMute">🔊</button>
             </span>
@@ -276,15 +327,27 @@
     <section class="page" data-page="3">
       <div class="panel">
         <h2 data-i18n="p3Title">✨ 跟着光弹</h2>
-        <p class="desc" data-i18n="p3Desc">主音（旋律）从上往下落。音符停在判定线、对应琴键亮起时就弹它——弹对才出声、灯灭、消除，下一个亮起。完全按你的节奏，弹到哪播到哪。</p>
+        <p class="desc" data-i18n="p3Desc">从人声扒出来的旋律单音从上往下落，背景音乐同步播放。音符到判定线、琴键亮起时跟着拍子弹——你弹的就是这首歌的主旋律。</p>
         <div class="hud">
           <div><div class="v" id="progN">0/0</div><div class="k" data-i18n="statProg">进度</div></div>
           <div><div class="v" id="comboN">0</div><div class="k" data-i18n="statCombo">连击</div></div>
           <div><div class="v score" id="scoreN">—</div><div class="k" data-i18n="statScore">得分</div></div>
         </div>
+        <div class="wfmode" id="wfMode">
+          <button class="wfmode-btn active" data-mode="follow" data-i18n="modeFollow">跟弹</button>
+          <button class="wfmode-btn" data-mode="flow" data-i18n="modeFlow">连弹</button>
+        </div>
         <div class="wfhint" id="wfHint"></div>
         <div class="pianowrap" id="playfield3">
-          <canvas id="wfCanvas" style="position:relative;display:block;width:100%;height:240px"></canvas>
+          <div id="wfField">
+            <div id="wfNotes"></div>
+            <div id="wfBurst"></div>
+            <div id="wfLine"></div>
+            <div id="wfCelebrate" class="wfcele hidden">
+              <div class="celebig" data-i18n="celebrate">Congratulations!</div>
+              <div class="celesub" id="celeSub"></div>
+            </div>
+          </div>
           <div class="piano" id="piano3" style="margin-top:-2px"></div>
         </div>
         <div class="row" style="justify-content:center;margin-top:12px">
@@ -471,14 +534,14 @@ let activePiano=null;            // 当前用于按键查询/点亮的 .piano �
 /* ---------- i18n ---------- */
 const I18N={
   zh:{
-    title:"动机即歌",
+    title:"光音成曲", sub:"用 Suno 解开创造音乐的密码",
     p1Title:"🎹 弹一个动机", p1Desc:"点「开始录制」，在键盘上弹 4–8 个音（屏幕钢琴 / 电脑键盘 A S D F G… / PartyKeys 都行），每个音都会从琴键上方升起一束能量光。弹完再点一下结束。",
     p2Title:"🎨 调一调你的歌", p2Desc:"点选风格、速度、乐器和人声，它们会自动写进下面的提示词。满意了就生成。",
-    p3Title:"✨ 跟着光弹", p3Desc:"主音（旋律）从上往下落。音符停在判定线、对应琴键亮起时就弹它——弹对才出声、灯灭、消除，下一个亮起。完全按你的节奏，弹到哪播到哪。",
+    p3Title:"✨ 跟着光弹", p3Desc:"从人声扒出来的旋律单音从上往下落，背景音乐同步播放。音符到判定线、琴键亮起时跟着拍子弹——你弹的就是这首歌的主旋律。",
     clear:"清空", next:"下一步 →", back:"← 上一步", restart:"🔄 重来",
     grpStyle:"风格", grpTempo:"速度", grpInst:"主要乐器（可多选）", grpVocal:"人声",
     promptLabel:"Suno 提示词（可手动修改）", promptPh:"先录一个动机…", lyricsLabel:"人声内容（啊啊啊，无歌词）",
-    genBtn:"🎵 生成歌曲", genIdle:"未开始",
+    genBtn:"SUNO - Generate!", genIdle:"未开始",
     statProg:"进度", statCombo:"连击", statScore:"得分",
     backingPause:"⏸ 暂停伴奏", backingPlay:"▶ 播放伴奏",
     settings:"⚙️ 设置", ledProto:"PartyKeys 灯光协议",
@@ -490,7 +553,7 @@ const I18N={
     kbLegend:"电脑键盘：A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5",
     stepNames:["弹动机","调歌","分轨","跟弹"],
     psTitle:"🎚️ 拆开人声和伴奏", psDesc:"把刚生成的这首歌拆成「主音」和「伴奏」两轨，各自有静音键——静音哪个哪个就不出声。跟弹时用伴奏轨，啊啊啊人声不会跟你抢旋律。",
-    stemVocal:"主音", stemInst:"伴奏", stemMute:"静音", stemLockHint:"需分轨服务", stemPlay:"▶️ 一起播放", stemPause:"⏸ 暂停", stemRedo:"🔄 重新分轨",
+    stemVocal:"旋律", stemInst:"背景音乐", stemMute:"静音", stemLockHint:"需分轨服务", stemPlay:"▶️ 一起播放", stemPause:"⏸ 暂停", stemRedo:"🔄 重新分轨",
     stemIdle:"待生成歌曲", stemNoSong:"先回上一步生成一首歌", stemDemo:"演示模式不分轨（用整首伴奏）",
     stemNeedWorkflow:"请在设置里填 music.ai 的 workflow slug", stemNeedKey:"直连需在设置里填分轨 API Key",
     stemSeparating:"分轨中…（约 30–60 秒）", stemPhaseSubmit:"提交分轨任务…", stemPhaseRun:s=>`分轨处理中…（${s}）`, stemPhaseDone:"完成 ✓",
@@ -509,21 +572,24 @@ const I18N={
     phaseScoring:s=>`AI 配乐中…（${s}）`, phaseDone:"完成 ✓",
     genDemo:"内置伴奏演示模式", genDirectNeedKey:"直连需填 API Key", genSubmitting:"提交中…", genGenerating:id=>`生成中（${id}…）`,
     genPreview:"可试听（生成中）", genDone:"完成 ✓", genTimeout:"超时/失败 → 内置伴奏", genFail:m=>`失败(${m}) → 内置伴奏`,
-    wfHint:"灯亮了就弹那个键 · 弹对灯灭，下一个亮起", wfReady:"准备好了就开始弹吧 🎶",
+    wfHint:"跟弹模式：弹对当前的音才会继续", wfReady:"灯亮就弹那个键，弹对了才会往下走 🎶", wfConverting:"正在把人声转成音符…",
+    wfWait:"轮到你了——弹亮起来的那个键 ✨",
+    modeFollow:"跟弹", modeFlow:"连弹", wfFlowReady:"跟着背景音乐，灯亮就弹 🎶",
     scoreGreat:"🎉 太棒了！整首拿下！", scoreGood:"👍 不错，再练练就更顺", scoreTry:"💪 多练几次会更好",
+    celebrate:"Congratulations!", celeAcc:(acc,combo)=>`准确率 ${acc}% · 最高连击 ${combo}`,
     ledSwitched:m=>`已切到 ${m} 协议`, ledNoOut:"没有 MIDI 输出设备（连上 PartyKeys 再试）",
     ledSent:"已发指令（约200ms后亮）。没亮就换另一个协议再点。", ledDone:"测试结束",
     btnLabel:"EN"
   },
   en:{
-    title:"Motif Song",
+    title:'<b>S</b>hine <b>U</b>p, <b>N</b>otes <b>O</b>n', sub:"When PartyKeys meets Suno, play your original songs in 100 seconds",
     p1Title:"🎹 Play a motif", p1Desc:"Hit Record and play 4–8 notes (on-screen piano / computer keys A S D F G… / PartyKeys). Each note bursts a ribbon of light above the key. Tap again to stop.",
     p2Title:"🎨 Tune your song", p2Desc:"Pick a style, tempo, instruments and vocals — they get written straight into the prompt below. Generate when happy.",
-    p3Title:"✨ Play along", p3Desc:"The lead melody falls from the top. When a note stops at the line and its key lights up, play it — a correct hit sounds the note, clears it and the light, then the next lights up. Fully self-paced: it only sounds where you play.",
+    p3Title:"✨ Play along", p3Desc:"The melody extracted from the vocal falls from the top while the background music plays in sync. Play each note in time as it reaches the line and its key lights up — you're playing the song's lead melody.",
     clear:"Clear", next:"Next →", back:"← Back", restart:"🔄 Restart",
     grpStyle:"Style", grpTempo:"Tempo", grpInst:"Instruments (multi)", grpVocal:"Vocals",
     promptLabel:"Suno prompt (editable)", promptPh:"Record a motif first…", lyricsLabel:"Vocal content (wordless \"ah\")",
-    genBtn:"🎵 Generate song", genIdle:"Not started",
+    genBtn:"SUNO - Generate!", genIdle:"Not started",
     statProg:"Progress", statCombo:"Combo", statScore:"Score",
     backingPause:"⏸ Pause backing", backingPlay:"▶ Play backing",
     settings:"⚙️ Settings", ledProto:"PartyKeys LED protocol",
@@ -535,7 +601,7 @@ const I18N={
     kbLegend:"Computer keys: A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5",
     stepNames:["Motif","Tune","Stems","Play"],
     psTitle:"🎚️ Split lead & backing", psDesc:"Separate the song you just made into a lead track and a backing track, each with its own mute button — mute one and it goes silent. Play-along uses the backing track so the wordless \"ah\" vocal won't fight your melody.",
-    stemVocal:"Lead", stemInst:"Backing", stemMute:"Mute", stemLockHint:"needs a stem splitter", stemPlay:"▶️ Play together", stemPause:"⏸ Pause", stemRedo:"🔄 Re-split",
+    stemVocal:"Melody", stemInst:"Background Music", stemMute:"Mute", stemLockHint:"needs a stem splitter", stemPlay:"▶️ Play together", stemPause:"⏸ Pause", stemRedo:"🔄 Re-split",
     stemIdle:"Generate a song first", stemNoSong:"Go back and generate a song first", stemDemo:"Demo mode skips splitting (uses full backing)",
     stemNeedWorkflow:"Set a music.ai workflow slug in Settings", stemNeedKey:"Direct mode needs a stem API key in Settings",
     stemSeparating:"Splitting… (~30–60s)", stemPhaseSubmit:"Submitting split job…", stemPhaseRun:s=>`Splitting… (${s})`, stemPhaseDone:"Done ✓",
@@ -553,8 +619,11 @@ const I18N={
     phaseScoring:s=>`AI scoring… (${s})`, phaseDone:"Done ✓",
     genDemo:"Built-in backing demo mode", genDirectNeedKey:"Direct mode needs an API key", genSubmitting:"Submitting…", genGenerating:id=>`Generating (${id}…)`,
     genPreview:"Preview ready (generating)", genDone:"Done ✓", genTimeout:"Timeout/fail → built-in backing", genFail:m=>`Failed (${m}) → built-in backing`,
-    wfHint:"Play the lit key · correct hit clears it, next lights up", wfReady:"Start playing whenever you're ready 🎶",
+    wfHint:"Follow mode: play the right note to move on", wfReady:"Play the lit key — it waits until you get it right 🎶", wfConverting:"Converting the vocal into notes…",
+    wfWait:"Your turn — play the lit key ✨",
+    modeFollow:"Follow", modeFlow:"Flow", wfFlowReady:"Play in time with the music — light shows the key 🎶",
     scoreGreat:"🎉 Awesome — you nailed it!", scoreGood:"👍 Nice, a bit more practice", scoreTry:"💪 Keep practicing, you'll get it",
+    celebrate:"Congratulations!", celeAcc:(acc,combo)=>`Accuracy ${acc}% · best combo ${combo}`,
     ledSwitched:m=>`Switched to ${m} protocol`, ledNoOut:"No MIDI output device (connect PartyKeys and retry)",
     ledSent:"Command sent (~200ms). If nothing lights, switch protocol and tap again.", ledDone:"Test finished",
     btnLabel:"中文"
@@ -617,15 +686,25 @@ function buildPiano(el){
     }
   }
   el.appendChild(inner);
-  // create black keys synchronously; reading offsetLeft forces layout so positions are correct
-  [...inner.querySelectorAll(".wkey")].forEach(w=>{
+  positionBlackKeys(inner);   // 黑键宽度/位置随白键（flex 撑满）实时算
+}
+// 白键 flex 撑满整排，黑键宽度按白键宽度比例、位置按 offsetLeft 计算；resize / 进页时重算。
+function positionBlackKeys(inner){
+  inner.querySelectorAll(".bkey").forEach(b=>b.remove());
+  const whites=[...inner.querySelectorAll(".wkey")]; if(!whites.length) return;
+  const ww=whites[0].offsetWidth, bw=Math.max(10, ww*0.62), bh=Math.round(whites[0].offsetHeight*0.62);
+  whites.forEach(w=>{
     const m=+w.dataset.note, pc=m%12;
     if(BLACKAFTER[pc]!==undefined && (m+1)<=HIGH){
       const b=document.createElement("div"); b.className="bkey key"; b.dataset.note=m+1;
-      b.style.left=(w.offsetLeft + w.offsetWidth - 8)+"px";
+      b.style.width=bw+"px"; b.style.height=bh+"px";
+      b.style.left=(w.offsetLeft + w.offsetWidth - bw/2)+"px";
       bindKey(b,m+1); inner.appendChild(b);
     }
   });
+}
+function relayoutPianos(){
+  document.querySelectorAll(".piano .pkeys").forEach(positionBlackKeys);
 }
 function bindKey(el,m){
   el.addEventListener("mousedown",()=>handleDown(m));
@@ -767,19 +846,22 @@ function composePrompt(){
 /* ---------- 生成（Suno: demo / proxy / direct + 降级） ---------- */
 function player(){ return $("player"); }
 $("genBtn").onclick=generate;
+$("player").addEventListener("play", genFxStart);
+$("player").addEventListener("pause", genFxStop);
+$("player").addEventListener("ended", genFxStop);
 function sunoUrl(base,mode,path){ return mode==="proxy" ? base+"?path="+encodeURIComponent(path) : base+path; }
 function sunoHeaders(mode,key){ const h={"Content-Type":"application/json"}; if(mode==="direct"&&key) h["Authorization"]="Bearer "+key; return h; }
 let genTimer=null, genStart=0, gotStreaming=false;
 async function generate(){
   const mode=$("connMode").value;
-  if(mode==="demo"){ setGen(t("genDemo"),"warn"); return fallbackBacking(); }
+  if(mode==="demo"){ setGen(t("genDemo"),"warn"); genFxStart(); setTimeout(genFxStop,1400); return fallbackBacking(); }
   const base=$("apiBase").value.trim().replace(/\/$/,"");
   const key=$("apiKey").value.trim();
   if(mode==="direct"&&!key){ setGen(t("genDirectNeedKey"),"err"); return; }
   const style=$("promptBox").value.trim(), voice=selVoice, lyrics=$("lyricsBox").value.trim();
   const body={ style, title:"My Motif Song" };
   if(voice){ body.lyrics=lyrics; body.voice_id=voice; } else { body.instrumental=true; }
-  $("genBtn").disabled=true; gotStreaming=false; startGenProgress();
+  $("genBtn").disabled=true; gotStreaming=false; startGenProgress(); genBusy=true; genFxStart();
   setGen(t("genSubmitting"),"warn"); setPhase(t("phaseSubmit"));
   try{
     const r=await fetch(sunoUrl(base,mode,"/v0/audio"),{method:"POST",headers:sunoHeaders(mode,key),body:JSON.stringify(body)});
@@ -791,7 +873,20 @@ async function generate(){
     else { setGen(t("genTimeout"),"warn"); finishGenProgress(false); fallbackBacking(); }
   }catch(err){
     setGen(t("genFail",err.message),"err"); finishGenProgress(false); fallbackBacking();
-  }finally{ $("genBtn").disabled=false; }
+  }finally{ $("genBtn").disabled=false; genBusy=false; if($("player").paused) genFxStop(); }
+}
+let genBusy=false, genFadeT=null;
+function genFxStart(){
+  const box=$("genBtnBox"); if(!box) return;
+  if(genFadeT){ clearTimeout(genFadeT); genFadeT=null; }
+  box.classList.remove("fading"); box.classList.add("active");
+}
+function genFxStop(){
+  if(genBusy) return;
+  const box=$("genBtnBox"); if(!box||!box.classList.contains("active")) return;
+  box.classList.add("fading");
+  if(genFadeT) clearTimeout(genFadeT);
+  genFadeT=setTimeout(()=>{ box.classList.remove("active","fading"); genFadeT=null; },1400);
 }
 async function pollAudio(base,mode,key,id){
   let lastUrl="";
@@ -859,6 +954,27 @@ if(_backingBtn) _backingBtn.onclick=()=>{
 const STEM_BASE_DIRECT="https://api.music.ai/v1";
 let stems={src:"", vocal:"", inst:"", done:false, busy:false};
 let stemTimer=null, stemStart=0, stemPlaying=false;
+let stemPreview=null, stemPreviewFade=null;   // 分轨等待期间循环试听整曲，完成后渐弱
+function fadeAudio(a,to,ms,done){
+  if(stemPreviewFade){ clearInterval(stemPreviewFade); stemPreviewFade=null; }
+  const from=a.volume, steps=Math.max(1,Math.round(ms/40)); let i=0;
+  stemPreviewFade=setInterval(()=>{ i++; a.volume=Math.max(0,Math.min(1,from+(to-from)*(i/steps)));
+    if(i>=steps){ clearInterval(stemPreviewFade); stemPreviewFade=null; if(done) done(); } },40);
+}
+function stemPreviewStart(url){
+  stemPreviewStop();
+  if(!url) return;
+  const a=new Audio(url); a.crossOrigin="anonymous"; a.loop=true; a.volume=0;
+  stemPreview=a; a.play().then(()=>{ if(stemPreview===a) fadeAudio(a,0.85,600); }).catch(()=>{});
+}
+function stemPreviewFadeOut(){
+  const a=stemPreview; if(!a) return;
+  fadeAudio(a,0,650,()=>{ try{a.pause();}catch(_){} if(stemPreview===a) stemPreview=null; });
+}
+function stemPreviewStop(){
+  if(stemPreviewFade){ clearInterval(stemPreviewFade); stemPreviewFade=null; }
+  if(stemPreview){ try{stemPreview.pause();}catch(_){} stemPreview=null; }
+}
 function stemBase(mode){
   const b=$("apiBase").value.trim().replace(/\/$/,"");
   if(mode==="proxy") return b.endsWith("/api/suno") ? b.replace(/\/api\/suno$/,"/api/stems") : b;
@@ -898,6 +1014,7 @@ async function separateStems(url){
   const cfg=stemCfg();
   stems.busy=true; stems.done=false; showStemMix(false);
   startStemProgress(); setStem(t("stemSeparating"),"warn"); setStemPhase(t("stemPhaseSubmit"));
+  stemPreviewStart(url);   // 分轨等待期间循环试听刚生成的整曲
   try{
     const r=await fetch(cfg.post,{method:"POST",headers:cfg.headers,body:JSON.stringify(cfg.body(url))});
     if(!r.ok){ let m="HTTP "+r.status; try{const e=await r.json(); if(e&&(e.error||e.message)) m+=" · "+(e.error||e.message);}catch(_){} throw new Error(m); }
@@ -911,12 +1028,14 @@ async function separateStems(url){
     stems={src:url, vocal, inst:inst||url, done:true, busy:false};
     $("aVocal").src=vocal||""; $("aInst").src=inst||url;
     finishStemProgress(true); setStem(t("stemDone"),"ok"); showStemMix(true);
+    stemPreviewFadeOut();   // 分轨完成 → 快速渐弱收尾
   }catch(err){
     stems.busy=false; finishStemProgress(false); stemFallbackTo(url); setStem(t("stemFail",err.message),"err");
+    stemPreviewFadeOut();
   }
 }
 async function pollStem(cfg,id){
-  for(let i=0;i<90;i++){
+  for(let i=0;i<300;i++){   // 最长约 10 分钟：Demucs 本地走 CPU 可能要好几分钟
     await wait(2000);
     let j; try{ const r=await fetch(cfg.job(id),{headers:cfg.headers}); j=await r.json(); }catch(_){ continue; }
     const st=(j.status||"").toUpperCase();
@@ -951,7 +1070,7 @@ function finishStemProgress(ok){ clearInterval(stemTimer); stemTimer=null; $("st
 function setStemPhase(x){ $("stemPhase").textContent=x; }
 function setStem(x,c){ const e=$("stemStatus"); e.textContent=x; e.className="pill "+(c||""); }
 
-function stemStopAll(){ ["aVocal","aInst"].forEach(id=>{ try{$(id).pause();}catch(_){}}); stemPlaying=false; $("stemPlay").textContent=t("stemPlay"); updateStemCards(); }
+function stemStopAll(){ stemPreviewStop(); ["aVocal","aInst"].forEach(id=>{ try{$(id).pause();}catch(_){}}); stemPlaying=false; $("stemPlay").textContent=t("stemPlay"); updateStemCards(); }
 function stemPlayToggle(){
   if(stemPlaying){ stemStopAll(); return; }
   const list=[$("aVocal"),$("aInst")].filter(a=>a.src && !a.src.endsWith(location.pathname));
@@ -986,7 +1105,49 @@ function syncStemBackend(){
   $("stemLegendMusicai").style.display=d?"none":"";
   $("stemLegendDemucs").style.display=d?"":"none";
 }
-$("stemBackend").onchange=syncStemBackend; syncStemBackend();
+$("stemBackend").onchange=syncStemBackend;
+// 本地打开（localhost）默认用 Demucs 本地分轨；线上默认 music.ai 云端。
+if(/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) $("stemBackend").value="demucs";
+syncStemBackend();
+
+/* ---------- 音量波浪线（替代旧的方块均衡器）---------- */
+// 每条轨一条随音量起伏的波浪线：播放中振幅大、随机起伏；停止/静音则压成近平线。
+const WAVE_GRAD={vocal:["#a64bff","#ff5ea3"], inst:["#4f8cff","#22d3ee"]};
+let waveRAF=null, wavePhase=0;
+function drawWave(c, playing, muted, stem){
+  const dpr=window.devicePixelRatio||1, r=c.getBoundingClientRect();
+  const cw=Math.max(1,Math.round(r.width*dpr)), ch=Math.max(1,Math.round(r.height*dpr));
+  if(c.width!==cw||c.height!==ch){ c.width=cw; c.height=ch; }
+  const ctx=c.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
+  const w=r.width, h=r.height, mid=h/2; ctx.clearRect(0,0,w,h);
+  const amp = muted ? h*0.04 : (playing ? h*0.40 : h*0.13);
+  const g=ctx.createLinearGradient(0,0,w,0); const col=WAVE_GRAD[stem]||["#4f8cff","#a64bff"];
+  g.addColorStop(0,col[0]); g.addColorStop(1,col[1]);
+  ctx.strokeStyle=g; ctx.lineWidth=2.2; ctx.lineJoin="round"; ctx.lineCap="round";
+  ctx.beginPath();
+  const seed = stem==="vocal" ? 1.7 : 0.4;
+  for(let x=0;x<=w;x+=3){
+    const u=x/w;
+    // 多个不同频率正弦叠加 + 随相位漂移 → 像音量随机起伏的波形
+    const env = playing ? (0.55+0.45*Math.sin(u*7+wavePhase*1.3+seed)) : 0.6;
+    const y = mid + amp*env*(
+      0.62*Math.sin(u*22+wavePhase*2.2+seed)
+      +0.26*Math.sin(u*54-wavePhase*3.1+seed*2)
+      +0.12*Math.sin(u*97+wavePhase*1.5));
+    x===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+}
+function waveFrame(){
+  document.querySelectorAll('#stemMix .wave').forEach(c=>{
+    const card=c.closest('.stemcard');
+    drawWave(c, card.classList.contains("playing"), card.classList.contains("muted"), card.dataset.stem);
+  });
+  wavePhase += 0.05;
+  waveRAF=requestAnimationFrame(waveFrame);
+}
+function startWave(){ stopWave(); waveRAF=requestAnimationFrame(waveFrame); }
+function stopWave(){ if(waveRAF){ cancelAnimationFrame(waveRAF); waveRAF=null; } }
 
 /* =========================================================================
    光球 orb（page1）
@@ -1063,112 +1224,351 @@ function startOrb(){ stopOrb(); orbRAF=requestAnimationFrame(orbFrame); }
 function stopOrb(){ if(orbRAF){ cancelAnimationFrame(orbRAF); orbRAF=null; } bursts=[]; }
 
 /* =========================================================================
-   瀑布流跟弹 wf（page3）— 自己节奏
+   瀑布流跟弹 wf（page4）— 时间同步：人声转单音 + 同步播放背景音乐
+   音符= {note, t(秒), dur(秒)}；瀑布按背景音乐(aInst.currentTime)的时钟下落。
+   图形复用 page1 发光粒子（半径更大）。
    ========================================================================= */
-const wf={active:false, notes:[], idx:0, tiles:[], parts:[], litNote:null, hits:0, combo:0, raf:null, holdY:0, gap:58, tileW:46, tileH:34};
-const WF_COLORS=[["#4f8cff","#7fb0ff"],["#a64bff","#c98aff"],["#ff8a3d","#ffb072"],["#ff5ea3","#ff97c4"]];
-function buildSongNotes(){
-  const base=captured.slice().sort((a,b)=>a.on-b.on).map(n=>n.note);
-  if(!base.length) return [60,62,64,65];
-  const loops=Math.max(2, Math.ceil(14/base.length));
-  let out=[]; for(let l=0;l<loops;l++) out=out.concat(base);
+const wf={active:false, mode:"follow", notes:[], lit:new Set(), litStrong:{}, hits:0, combo:0, maxCombo:0, wrong:0, timer:null,
+          t0:0, dur:0, holdY:0, fieldH:240, keyX:{}, col:{}, lead:2.4, hitWin:0.34, preLight:0.3,
+          paused:false, pauseAccum:0, pauseStart:0, waitEl:null, fwTimer:null, finished:false,
+          _ledKey:null, _hint:""};
+const WF_BOX=58;
+
+// 人声 mp3 → 单音 MIDI（带时值）。下采样到 ~8kHz 后做自相关基频检测 + 分段成音符。
+// 无人声 / 跨域取不到 / 检测不到足够音符 → 返回 null（外层用录的动机兜底）。
+let vocalCache={src:"", notes:null};
+async function vocalToNotes(){
+  const a=$("aVocal"); const src=a&&a.src||"";
+  if(!src || src.endsWith(location.pathname) || !/^(https?|blob):/.test(src)) return null;
+  if(vocalCache.src===src) return vocalCache.notes;
+  let buf;
+  try{ const ab=await (await fetch(src)).arrayBuffer(); buf=await audio().decodeAudioData(ab.slice(0)); }
+  catch(_){ vocalCache={src,notes:null}; return null; }
+  const sr=buf.sampleRate, ch0=buf.getChannelData(0);
+  const ratio=Math.max(1,Math.floor(sr/8000)), dsSR=sr/ratio, N=Math.floor(ch0.length/ratio);
+  const ds=new Float32Array(N);
+  for(let i=0;i<N;i++){ let s=0; for(let j=0;j<ratio;j++) s+=ch0[i*ratio+j]; ds[i]=s/ratio; }
+  const frame=1024, hop=256, dt=hop/dsSR;
+  const minLag=Math.floor(dsSR/1000), maxLag=Math.ceil(dsSR/75);   // 75–1000 Hz
+  const nf=Math.max(0,Math.floor((N-frame)/hop)+1);
+  const rmsArr=new Float32Array(nf), midiArr=new Float32Array(nf);  // NaN=unvoiced
+  const ac=new Float32Array(maxLag+1); let maxRms=0;
+  for(let fi=0;fi<nf;fi++){
+    const p=fi*hop;
+    let e=0; for(let i=0;i<frame;i++){ const v=ds[p+i]; e+=v*v; }
+    const rms=Math.sqrt(e/frame); rmsArr[fi]=rms; if(rms>maxRms) maxRms=rms;
+    let bestLag=-1,bestVal=0;
+    for(let lag=minLag;lag<=maxLag;lag++){
+      let s=0; for(let i=0;i<frame-lag;i++) s+=ds[p+i]*ds[p+i+lag];
+      const norm=s/(e||1); ac[lag]=norm;
+      if(norm>bestVal){ bestVal=norm; bestLag=lag; }
+    }
+    if(bestLag>0 && bestVal>0.6){
+      // 防降八度：取第一个「局部极大且达到峰值 80%」的更短 lag（更高基频，避免选到上升沿）
+      let fund=bestLag;
+      for(let lag=minLag+1;lag<bestLag;lag++){ if(ac[lag]>=bestVal*0.8 && ac[lag]>=ac[lag-1] && ac[lag]>ac[lag+1]){ fund=lag; break; } }
+      // 抛物线插值精修
+      let L=fund;
+      if(fund>minLag && fund<maxLag){ const y0=ac[fund-1],y1=ac[fund],y2=ac[fund+1], d=(y0-y2)/(2*(y0-2*y1+y2)||1); if(isFinite(d)&&Math.abs(d)<1) L=fund+d; }
+      midiArr[fi]=69+12*Math.log2((dsSR/L)/440);
+    } else midiArr[fi]=NaN;
+  }
+  // 自适应能量门限（相对全曲最大音量）：滤掉气声/底噪
+  const gate=Math.max(0.012, maxRms*0.14);
+  const r=new Array(nf);
+  for(let fi=0;fi<nf;fi++){
+    if(rmsArr[fi]<gate || isNaN(midiArr[fi])){ r[fi]=null; continue; }
+    let m=Math.round(midiArr[fi]); while(m<LOW)m+=12; while(m>HIGH)m-=12; r[fi]=m;
+  }
+  // 中值滤波（窗口 5，忽略空帧）→ 消单帧八度跳变/抖动
+  const sm=new Array(nf);
+  for(let i=0;i<nf;i++){ const w=[]; for(let k=-2;k<=2;k++){ const j=i+k; if(j>=0&&j<nf&&r[j]!=null) w.push(r[j]); }
+    if(!w.length){ sm[i]=null; continue; } w.sort((a,b)=>a-b); sm[i]=w[w.length>>1]; }
+  // RLE 成段
+  let segs=[], cs=null;
+  for(let i=0;i<nf;i++){ const m=sm[i];
+    if(m==null){ if(cs){segs.push(cs);cs=null;} continue; }
+    if(cs && cs.midi===m) cs.end=i; else { if(cs) segs.push(cs); cs={midi:m,start:i,end:i}; } }
+  if(cs) segs.push(cs);
+  // 丢掉过短段（噪点）
+  const minFrames=Math.max(3,Math.round(0.12/dt));
+  segs=segs.filter(s=>(s.end-s.start+1)>=minFrames);
+  // 合并相邻同音、间隔很小的段 → 一个长音
+  const merged=[], gapFrames=Math.round(0.14/dt);
+  for(const s of segs){ const last=merged[merged.length-1];
+    if(last && last.midi===s.midi && (s.start-last.end)<=gapFrames) last.end=s.end; else merged.push({...s}); }
+  const notes=merged.map(s=>({note:s.midi, t:s.start*dt, dur:Math.max(0.14,(s.end-s.start+1)*dt)}));
+  smoothOctaves(notes);
+  const result=notes.length>=2?notes:null;
+  vocalCache={src,notes:result};
+  return result;
+}
+// 消除瀑布流的突兀八度跳变：每个音保持音名(pitch class)，但把八度移到离上一个音最近的位置，
+// 让相邻音尽量在就近的琴键上完成弹奏。范围限制在 [LOW,HIGH]。
+function smoothOctaves(notes){
+  for(let i=1;i<notes.length;i++){
+    const prev=notes[i-1].note, pc=((notes[i].note%12)+12)%12;
+    let best=notes[i].note, bd=Infinity;
+    for(let m=LOW+((pc-LOW%12+12)%12); m<=HIGH; m+=12){
+      const d=Math.abs(m-prev);
+      if(d<bd){ bd=d; best=m; }
+    }
+    notes[i].note=best;
+  }
+}
+// 相邻两音起始太近(<minGap 秒)时只保留前一个，避免瀑布流逼用户仓促连弹两个键。
+function thinNotes(notes, minGap){
+  const out=[];
+  for(const n of notes){
+    const prev=out[out.length-1];
+    if(prev && n.t-prev.t<minGap){ prev.dur=Math.max(prev.dur, n.t+n.dur-prev.t); continue; }
+    out.push({...n});
+  }
   return out;
 }
-function wfStart(){
+// 没人声时：用录的动机循环，按 bpm 排好时值。
+function motifFallbackNotes(){
+  const base=captured.slice().sort((a,b)=>a.on-b.on).map(n=>n.note);
+  const seq=base.length?base:[60,62,64,65,67,65,64,62];
+  const step=60/(_bpm||90), loops=Math.max(2,Math.ceil(12/seq.length)), out=[]; let tt=1.0;
+  for(let l=0;l<loops;l++) for(const m of seq){ out.push({note:m,t:tt,dur:step*0.9}); tt+=step; }
+  return out;
+}
+// 量一次几何：判定线位置 + 每个键在瀑布场内的 x，并缓存配色。瀑布全程不再逐帧测量。
+function layoutWf(){
+  const f=$("wfField"), r=f.getBoundingClientRect();
+  wf.fieldH=r.height; wf.holdY=r.height-58;
+  $("wfLine").style.top=(wf.holdY-1)+"px";
+  wf.keyX={}; wf.col={};
+  for(let m=LOW;m<=HIGH;m++){
+    const p=keyRelXY(m,f); if(p) wf.keyX[m]=p.x;
+    const c=orbColor(m); wf.col[m]=c[0]+","+c[1]+","+c[2];
+  }
+}
+// 用 CSS transform 动画让音符下落（GPU 合成，主线程零逐帧绘制）。
+// 速度恒定：lead 秒内中心从顶部落到判定线；keyframe 固定 -21→219，靠 delay 排时间。
+function buildWfNotes(){
+  const host=$("wfNotes"); host.innerHTML="";
+  // 起点整颗球都在场外上方(-WF_BOX)，排队中的球不会从顶部露出半截；
+  // 相应把 delay 多减 hb/pxs，保证球心仍然在 n.t 准确越过判定线。
+  const hb=WF_BOX/2, pxs=wf.holdY/wf.lead, y0=-WF_BOX, y1=wf.fieldH-hb, dur=(y1-y0)/pxs;
+  for(const n of wf.notes){
+    const x=wf.keyX[n.note]; if(x==null) continue;
+    const tail=Math.max(10,n.dur*pxs);
+    const d=document.createElement("div"); d.className="wfn"+(tail>18?" tail":"");
+    d.style.cssText=`left:${x}px;--c:${wf.col[n.note]};--tail:${tail}px;--y0:${y0}px;--y1:${y1}px;`+
+      `animation-duration:${dur.toFixed(3)}s;animation-delay:${(n.t-(wf.holdY+hb)/pxs).toFixed(3)}s`;
+    d.innerHTML=`<span class="lbl">${noteName(n.note)}</span>`;
+    host.appendChild(d); n.el=d;
+  }
+}
+function wfClock(){
+  let p=wf.pauseAccum;
+  if(wf.paused) p+=performance.now()/1000 - wf.pauseStart;
+  return performance.now()/1000 - wf.t0 - p;
+}
+function nextReqNote(){ let best=null; for(const n of wf.notes){ if(n.hit) continue; if(!best||n.t<best.t) best=n; } return best; }
+function wfPause(req){
+  if(wf.paused||!wf.active) return;
+  wf.paused=true; wf.pauseStart=performance.now()/1000;
+  $("wfField").classList.add("paused");
+  try{$("aInst").pause();}catch(_){}
+  if(req&&req.el){ wf.waitEl=req.el; req.el.classList.add("wait"); }
+  $("wfHint").textContent=t("wfWait");
+}
+function wfResume(){
+  if(!wf.paused) return;
+  wf.pauseAccum+=performance.now()/1000 - wf.pauseStart;
+  wf.paused=false;
+  $("wfField").classList.remove("paused");
+  if(wf.waitEl){ wf.waitEl.classList.remove("wait"); wf.waitEl=null; }
+  $("wfHint").textContent=wf._hint;
+  const inst=$("aInst");
+  if(!wf.finished && inst.src && !inst.src.endsWith(location.pathname)) inst.play().catch(()=>{});
+}
+async function wfStart(){
   wfStop();
   activePiano=$("piano3"); clearLights(); ledInit();
-  wf.notes=buildSongNotes(); wf.idx=0; wf.tiles=[]; wf.parts=[]; wf.litNote=null; wf.hits=0; wf.combo=0;
-  const c=$("wfCanvas"); const r=c.getBoundingClientRect(); wf.holdY=r.height-wf.tileH-6;
-  wf.tiles=wf.notes.map((note,i)=>({note, x:0, y:-120 - i*wf.gap, slotShown:false}));
-  layoutTileX();
-  $("progN").textContent="0/"+wf.notes.length; $("comboN").textContent="0"; $("scoreN").textContent="—";
-  $("wfHint").textContent=t("wfReady");
-  wf.active=true; wf._grad=null; wf.raf=requestAnimationFrame(wfFrame);
+  wf.lit=new Set(); wf.litStrong={}; wf.hits=0; wf.combo=0; wf.maxCombo=0; wf.wrong=0; wf._ledKey=null; wf._hint="";
+  wf.paused=false; wf.pauseAccum=0; wf.pauseStart=0; wf.waitEl=null; wf.finished=false;
+  if(wf.fwTimer){ clearInterval(wf.fwTimer); wf.fwTimer=null; }
+  $("wfField").classList.remove("paused"); $("wfCelebrate").classList.add("hidden");
+  $("wfNotes").innerHTML=""; $("wfBurst").innerHTML="";
+  layoutWf();
+  $("progN").textContent="0/0"; $("comboN").textContent="0"; $("scoreN").textContent="—";
+  $("wfHint").textContent=t("wfConverting");
+  // 人声 → 单音；否则用动机兜底
+  let notes=null; try{ notes=await vocalToNotes(); }catch(_){ notes=null; }
+  if(curPage!==3) return;        // 转换期间用户已离开
+  if(!notes) notes=motifFallbackNotes();
+  notes=thinNotes(notes,0.24);   // 间隔太近的相邻音只保留一个，别让用户仓促连弹
+  wf.notes=notes.map(n=>({note:n.note,t:n.t,dur:n.dur,hit:false,missed:false,el:null}));
+  const last=wf.notes[wf.notes.length-1]; wf.dur=last?last.t+last.dur:0;
+  $("progN").textContent="0/"+wf.notes.length;
+  const hint=wf.mode==="follow"?t("wfReady"):t("wfFlowReady");
+  $("wfHint").textContent=hint; wf._hint=hint;
+  // 背景音乐同步播放（伴奏轨；fallback 时是整首）。人声轨不播——用户来弹旋律。
+  const inst=$("aInst");
+  try{ $("aVocal").pause(); }catch(_){}
+  if(inst.src && !inst.src.endsWith(location.pathname)){
+    inst.muted=false; try{inst.currentTime=0;}catch(_){}
+    inst.play().catch(()=>{});
+  }
+  wf.t0=performance.now()/1000;
+  buildWfNotes();              // CSS 动画从此刻起算，与 wfClock 同源
+  wf.active=true;
+  wf.timer=setInterval(wfTick,30);   // 只做灯光/判定记账，不绘制
 }
 function wfStop(){
-  wf.active=false; if(wf.raf){cancelAnimationFrame(wf.raf); wf.raf=null;}
-  if(wf.litNote!=null){ litOff(wf.litNote); ledAllOff(); wf.litNote=null; }
+  wf.active=false; wf.paused=false; if(wf.timer){clearInterval(wf.timer); wf.timer=null;}
+  if(wf.fwTimer){ clearInterval(wf.fwTimer); wf.fwTimer=null; }
+  try{$("aInst").pause();}catch(_){}
+  for(const m of wf.lit) litOff(m); wf.lit.clear(); wf.litStrong={}; ledAllOff(); wf._ledKey=null;
+  wf.waitEl=null; $("wfField").classList.remove("paused"); $("wfCelebrate").classList.add("hidden");
+  const h=$("wfNotes"); if(h) h.innerHTML="";
 }
-function layoutTileX(){
-  const c=$("wfCanvas");
-  wf.tiles.forEach(tl=>{ const p=keyRelXY(tl.note,c); tl.x = p? p.x : c.getBoundingClientRect().width/2; });
-}
-function wfFrame(){
-  const c=$("wfCanvas"); const dpr=window.devicePixelRatio||1; const r=c.getBoundingClientRect();
-  const cw=Math.round(r.width*dpr), ch=Math.round(r.height*dpr);
-  if(c.width!==cw||c.height!==ch){ c.width=cw; c.height=ch; layoutTileX(); wf.holdY=r.height-wf.tileH-6; wf._grad=null; }
-  const ctx=c.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0);
-  const w=r.width, h=r.height; ctx.clearRect(0,0,w,h);
-
-  // judgment line（渐变只在尺寸变化时重建，避免逐帧分配）
-  const ly=wf.holdY+wf.tileH+2;
-  if(!wf._grad){ const lg=ctx.createLinearGradient(0,0,w,0); lg.addColorStop(0,"#4f8cff");lg.addColorStop(.5,"#a64bff");lg.addColorStop(1,"#ff8a3d"); wf._grad=lg; }
-  ctx.strokeStyle=wf._grad; ctx.lineWidth=2; ctx.globalAlpha=.9; ctx.beginPath(); ctx.moveTo(8,ly); ctx.lineTo(w-8,ly); ctx.stroke(); ctx.globalAlpha=1;
-
-  // tiles (front = idx)
-  for(let i=wf.idx;i<wf.notes.length && i<wf.idx+6;i++){
-    const tl=wf.tiles[i], slot=i-wf.idx;
-    const targetY = wf.holdY - slot*wf.gap;
-    tl.y += (targetY - tl.y)*0.16;
-    const front = (i===wf.idx);
-    if(front && Math.abs(tl.y-wf.holdY)<3 && wf.litNote!==tl.note){
-      if(wf.litNote!=null) litOff(wf.litNote);
-      wf.litNote=tl.note; litOn(tl.note,HEX.purple); lightNotes([tl.note],"purple");
-      $("wfHint").textContent=t("wfHint");
+// 跟弹模式记账循环（无绘制）：预亮灯光 + 到判定线没弹对就暂停等待 + 收尾。
+function wfTick(){
+  if(!wf.active) return;
+  const now=wfClock();
+  wfLights(now);
+  const tail=(wf.fieldH-wf.holdY)/(wf.holdY/wf.lead)+0.6;
+  if(wf.mode==="flow"){
+    // 连弹：不暂停，过判定窗仍没弹中就记为漏弹并淡出，背景音乐持续。
+    for(const n of wf.notes){
+      if(!n.hit && !n.missed && now>n.t+wf.hitWin){
+        n.missed=true; if(n.el) n.el.classList.add("miss");
+        wf.wrong++; wf.combo=0; $("comboN").textContent="0";
+      }
     }
-    drawTile(ctx,tl.x,tl.y,tl.note,front,slot);
+    if(now>wf.dur+tail) wfFinish();
+    return;
   }
-  // particles
-  wf.parts=wf.parts.filter(p=>p.life>0);
-  wf.parts.forEach(p=>{
-    p.x+=p.vx; p.y+=p.vy; p.vy+=0.18; p.life-=0.025;
-    ctx.globalAlpha=Math.max(0,p.life); ctx.fillStyle=p.c;
-    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill();
-  });
-  ctx.globalAlpha=1;
-  wf.raf=requestAnimationFrame(wfFrame);
+  if(!wf.paused){
+    const req=nextReqNote();
+    if(req && now>=req.t){ wfPause(req); return; }   // 到线还没弹对 → 暂停等用户
+    if(!req && now>wf.dur+tail) wfFinish();
+  }
 }
-function drawTile(ctx,x,y,note,front,slot){
-  const w=wf.tileW, h=wf.tileH, rad=10; const col=WF_COLORS[slot%WF_COLORS.length];
-  const x0=x-w/2;
-  ctx.save();
-  if(front){ ctx.shadowColor=col[0]; ctx.shadowBlur=14; }
-  const g=ctx.createLinearGradient(x0,y,x0,y+h); g.addColorStop(0,col[1]); g.addColorStop(1,col[0]);
-  ctx.fillStyle=g; ctx.globalAlpha=front?1:Math.max(.35,1-slot*0.16);
-  roundRect(ctx,x0,y,w,h,rad); ctx.fill();
-  ctx.restore();
-  if(front){ ctx.strokeStyle="rgba(255,255,255,.85)"; ctx.lineWidth=2; roundRect(ctx,x0,y,w,h,rad); ctx.stroke(); }
-  ctx.fillStyle="#fff"; ctx.globalAlpha=front?1:0.7; ctx.font="700 13px -apple-system,sans-serif";
-  ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(noteName(note),x,y+h/2); ctx.globalAlpha=1;
+// 提前 preLight 秒预亮该键（屏幕白/黑键 + 硬件 LED），到判定线时加强；命中后熄灭。
+function litGlow(m,strong){
+  const e=keyEl(m); if(!e) return; e.classList.add("lit");
+  e.style.boxShadow = strong
+    ? `0 0 0 3px ${HEX.purple} inset, 0 0 22px ${HEX.purple}, inset 0 0 12px rgba(255,255,255,.7)`
+    : `0 0 0 2px ${HEX.purple}aa inset, 0 0 11px ${HEX.purple}99`;
 }
-function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
-function burst(x,y){
-  const cols=["#4f8cff","#a64bff","#ff8a3d","#ff5ea3","#ffffff"];
-  for(let i=0;i<22;i++){ const a=Math.random()*7, sp=2+Math.random()*4;
-    wf.parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-2,r:2+Math.random()*3,life:1,c:cols[i%cols.length]}); }
+function wfLights(now){
+  const want={};   // note -> strong
+  for(const n of wf.notes){
+    if(n.hit) continue;
+    if(now>=n.t-wf.preLight && now<=n.t+wf.hitWin){
+      const strong = now>=n.t-0.06;
+      want[n.note] = want[n.note] || strong;
+    }
+  }
+  for(const m of [...wf.lit]){ if(!(m in want)){ litOff(m); wf.lit.delete(m); delete wf.litStrong[m]; } }
+  for(const m in want){ const mm=+m, s=want[m];
+    if(!wf.lit.has(mm) || wf.litStrong[mm]!==s){ litGlow(mm,s); wf.lit.add(mm); wf.litStrong[mm]=s; } }
+  const arr=Object.keys(want).map(Number).sort((a,b)=>a-b), key=arr.join(",");
+  if(key!==wf._ledKey){ wf._ledKey=key; if(arr.length) lightNotes(arr,"purple"); else ledAllOff(); }
+}
+function wfBurst(x,y,m){
+  const host=$("wfBurst"); if(!host) return;
+  const c=wf.col[m]||"166,75,255";
+  for(let i=0;i<10;i++){
+    const a=Math.random()*6.283, sp=14+Math.random()*30;
+    const b=document.createElement("div"); b.className="wfb";
+    b.style.cssText=`left:${x}px;top:${y}px;--c:${c};--dx:${(Math.cos(a)*sp).toFixed(0)}px;--dy:${(Math.sin(a)*sp-18).toFixed(0)}px`;
+    b.addEventListener("animationend",()=>b.remove());
+    host.appendChild(b);
+  }
+}
+// 大礼花：多色、大扩散，撒满全场，用于通关庆祝。
+const FW_PAL=[[79,140,255],[166,75,255],[255,138,61],[255,90,160],[80,220,255],[120,255,170]];
+function wfFirework(x,y){
+  const host=$("wfBurst"); if(!host) return;
+  const c=FW_PAL[(Math.random()*FW_PAL.length)|0], n=24;
+  for(let i=0;i<n;i++){
+    const a=(i/n)*6.283+Math.random()*0.25, sp=46+Math.random()*88;
+    const b=document.createElement("div"); b.className="wfb big";
+    b.style.cssText=`left:${x}px;top:${y}px;--c:${c[0]},${c[1]},${c[2]};`+
+      `--dx:${(Math.cos(a)*sp).toFixed(0)}px;--dy:${(Math.sin(a)*sp).toFixed(0)}px`;
+    b.addEventListener("animationend",()=>b.remove());
+    host.appendChild(b);
+  }
+}
+function markHit(n,m){
+  n.hit=true; if(n.el){ n.el.classList.remove("wait"); n.el.classList.add("hit"); }
+  wf.hits++; wf.combo++; if(wf.combo>wf.maxCombo) wf.maxCombo=wf.combo;
+  const x=wf.keyX[m]!=null?wf.keyX[m]:0; wfBurst(x,wf.holdY,m);
+  litOff(m); wf.lit.delete(m); delete wf.litStrong[m]; wf._ledKey=null;
+  $("progN").textContent=wf.hits+"/"+wf.notes.length; $("comboN").textContent=wf.combo;
 }
 function wfHit(m){
-  if(!wf.active || wf.idx>=wf.notes.length) return;
-  const target=wf.notes[wf.idx];
-  if(m===target){
-    const tl=wf.tiles[wf.idx]; burst(tl.x, wf.holdY+wf.tileH/2);
-    litOff(target); ledAllOff(); wf.litNote=null;
-    wf.hits++; wf.combo++; wf.idx++;
-    $("progN").textContent=wf.idx+"/"+wf.notes.length; $("comboN").textContent=wf.combo;
-    if(wf.idx>=wf.notes.length) wfFinish();
-  } else {
-    wf.combo=0; $("comboN").textContent="0";
-    const c=$("wfCanvas"); c.animate?c.animate([{transform:"translateX(-4px)"},{transform:"translateX(4px)"},{transform:"none"}],{duration:140}):0;
+  if(!wf.active) return;
+  const now=wfClock();
+  if(wf.mode==="flow"){
+    // 连弹：找此刻判定窗内、音高匹配、最接近的未命中音 → 命中；否则误弹。
+    let best=null, bd=Infinity;
+    for(const n of wf.notes){
+      if(n.hit||n.missed||n.note!==m) continue;
+      const d=Math.abs(now-n.t);
+      if(d<=wf.hitWin && d<bd){ bd=d; best=n; }
+    }
+    if(best){ markHit(best,m); }
+    else{
+      wf.wrong++; wf.combo=0; $("comboN").textContent="0";
+      const f=$("wfField"); f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake");
+    }
+    return;
   }
+  const req=nextReqNote(); if(!req) return;
+  const inZone = wf.paused || now>=req.t-wf.hitWin;   // 已到判定线附近（或正在等待）
+  if(m===req.note && inZone){
+    markHit(req,m);
+    if(wf.paused){
+      const nx=nextReqNote();
+      if(!nx || nx.t>wfClock()+0.001) wfResume();      // 下一个音还没到线才恢复；否则继续等它
+      else { if(nx.el) nx.el.classList.add("wait"); wf.waitEl=nx.el; }
+    }
+  } else if(inZone){
+    wf.wrong++; wf.combo=0; $("comboN").textContent="0";
+    const f=$("wfField"); f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake");
+  }
+  // 不在判定区的提前误弹：忽略，不罚分（音符会继续落到线再等）
 }
 function wfFinish(){
-  const pct=Math.round(100*wf.hits/Math.max(1,wf.notes.length));
-  $("scoreN").textContent=pct;
-  $("wfHint").textContent = pct>=80?t("scoreGreat"):(pct>=50?t("scoreGood"):t("scoreTry"));
-  for(let i=0;i<3;i++) setTimeout(()=>burst(($("wfCanvas").getBoundingClientRect().width)*(0.3+0.2*i), 60+i*20), i*180);
-  wf.active=false; if(wf.litNote!=null){litOff(wf.litNote);ledAllOff();wf.litNote=null;}
+  if(!wf.active) return;
+  wf.active=false; wf.finished=true; wf.paused=false;
+  if(wf.timer){clearInterval(wf.timer); wf.timer=null;}
+  $("wfField").classList.remove("paused");
+  try{$("aInst").pause();}catch(_){}
+  for(const m of wf.lit) litOff(m); wf.lit.clear(); wf.litStrong={}; ledAllOff(); wf._ledKey=null;
+  const acc=Math.round(100*wf.hits/Math.max(1,wf.hits+wf.wrong));   // 准确率（含误弹）
+  $("scoreN").textContent=acc;
+  wf._hint=t(acc>=80?"scoreGreat":(acc>=50?"scoreGood":"scoreTry")); $("wfHint").textContent=wf._hint;
+  // 庆祝：大字 + 撒满全场的大礼花
+  $("celeSub").textContent=t("celeAcc",acc,wf.maxCombo);
+  $("wfCelebrate").classList.remove("hidden");
+  const r=$("wfField").getBoundingClientRect(), W=r.width, H=wf.fieldH;
+  if(wf.fwTimer) clearInterval(wf.fwTimer);
+  for(let i=0;i<6;i++) setTimeout(()=>wfFirework(W*(0.15+0.14*i),50+Math.random()*60), i*120);
+  let shots=0;
+  wf.fwTimer=setInterval(()=>{
+    wfFirework(40+Math.random()*(W-80), 36+Math.random()*(H*0.62));
+    if(++shots>=16){ clearInterval(wf.fwTimer); wf.fwTimer=null; }
+  },170);
 }
 $("restartBtn").onclick=()=>{ if(curPage===3) wfStart(); };
+// 跟弹 / 连弹 模式切换
+document.querySelectorAll("#wfMode .wfmode-btn").forEach(b=>{
+  b.onclick=()=>{
+    if(b.classList.contains("active")) return;
+    document.querySelectorAll("#wfMode .wfmode-btn").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active"); wf.mode=b.dataset.mode;
+    if(curPage===3) wfStart();
+  };
+});
 
 /* ---------- 灯光测试 + 协议切换（设置弹窗） ---------- */
 $("ledMode").onchange=()=>{ LED_MODE=$("ledMode").value; if(midiOut){ ledInit(); $("ledHint").textContent=t("ledSwitched",LED_MODE); } };
@@ -1201,12 +1601,12 @@ function showPage(i){
   document.querySelectorAll(".dot").forEach((d,idx)=> d.classList.toggle("on", idx<=i));
   onEnterPage(i); refreshDynamic();
 }
-function onLeavePage(i){ if(i===0) stopOrb(); if(i===2) stemStopAll(); if(i===3) wfStop(); }
+function onLeavePage(i){ if(i===0) stopOrb(); if(i===2){ stemStopAll(); stopWave(); } if(i===3) wfStop(); }
 function onEnterPage(i){
-  if(i===0){ activePiano=$("piano1"); startOrb(); }
+  if(i===0){ activePiano=$("piano1"); positionBlackKeys($("piano1").querySelector(".pkeys")); startOrb(); }
   if(i===1){ composePrompt(); }
-  if(i===2){ enterStemPage(); }
-  if(i===3){ activePiano=$("piano3"); wfStart(); }
+  if(i===2){ enterStemPage(); startWave(); }
+  if(i===3){ activePiano=$("piano3"); positionBlackKeys($("piano3").querySelector(".pkeys")); wfStart(); }
 }
 $("next1").onclick=()=>showPage(1);
 $("back2").onclick=()=>showPage(0);
@@ -1214,6 +1614,12 @@ $("next2").onclick=()=>showPage(2);
 $("backStem").onclick=()=>showPage(1);
 $("nextStem").onclick=()=>showPage(3);
 $("back3").onclick=()=>showPage(2);
+window.addEventListener("resize",()=>{
+  relayoutPianos();
+  if(curPage!==3 || !wf.active) return;
+  layoutWf();
+  for(const n of wf.notes){ if(n.el && wf.keyX[n.note]!=null) n.el.style.left=wf.keyX[n.note]+"px"; }
+});
 
 /* ---------- 智能默认连接方式 ---------- */
 (function smartDefaults(){
