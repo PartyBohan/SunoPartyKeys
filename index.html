@@ -414,7 +414,8 @@ Ah ah ah-ah, la la</textarea>
       <summary data-i18n="stemConn">分轨</summary>
       <label data-i18n="stemBackendLabel">分轨后端</label>
       <select id="stemBackend">
-        <option value="musicai" selected data-i18n="stemBackendMusicai">music.ai（云端）</option>
+        <option value="replicate" selected data-i18n="stemBackendReplicate">Replicate（云端 · Demucs）</option>
+        <option value="musicai" data-i18n="stemBackendMusicai">music.ai（云端）</option>
         <option value="demucs" data-i18n="stemBackendDemucs">Demucs 本地（开源 · 免费）</option>
       </select>
       <div id="stemMusicaiCfg">
@@ -429,6 +430,7 @@ Ah ah ah-ah, la la</textarea>
       </div>
       <div class="legend" id="stemLegendMusicai" data-i18n="stemLegend" style="text-align:left">分轨走第 3 步。代理模式：Vercel 加环境变量 <span class="mono">MUSICAI_KEY</span>（部署 <span class="mono">api/stems.js</span>），或本地 <span class="mono">MUSICAI_KEY=... node local-proxy.mjs sk_live_...</span>。在 music.ai 后台建一个人声/伴奏分离 workflow，把它的 slug 填上面。没填或 demo 模式则跳过分轨，跟弹用整首伴奏。</div>
       <div class="legend" id="stemLegendDemucs" data-i18n="demucsLegend" style="text-align:left;display:none">分轨走第 3 步。本地跑随附的 <span class="mono">demucs-server.py</span>（<span class="mono">pip install -U demucs</span> + <span class="mono">ffmpeg</span>，再 <span class="mono">python3 demucs-server.py</span>）。它把 Suno 整曲拆成人声 + 伴奏两轨，纯本地、无密钥、CPU 约 30–90 秒。没起服务则降级用整首伴奏。</div>
+      <div class="legend" id="stemLegendReplicate" data-i18n="replicateLegend" style="text-align:left;display:none">分轨走第 3 步。云端跑 Replicate 上的 Demucs（和本地同一个 htdemucs）。只需在 Vercel 加环境变量 <span class="mono">REPLICATE_API_TOKEN</span>（部署 <span class="mono">api/stems-replicate.js</span>）。按秒计费、个人可用，一首约几分钱。无需填任何 slug 或 key 到页面里。没配 token 或 demo 模式则跳过分轨，跟弹用整首伴奏。</div>
     </details>
   </div>
 </div>
@@ -559,7 +561,8 @@ const I18N={
     stemSeparating:"分轨中…（约 30–60 秒）", stemPhaseSubmit:"提交分轨任务…", stemPhaseRun:s=>`分轨处理中…（${s}）`, stemPhaseDone:"完成 ✓",
     stemDone:"✓ 已拆成人声 + 伴奏", stemFail:m=>`分轨失败(${m}) → 用整首伴奏`, stemFallback:"未分轨 → 跟弹用整首伴奏",
     stemWfLabel:"music.ai workflow slug（分轨用）", stemKeyLabel:"分轨 API Key（仅直连 · 仅存内存）", stemConn:"分轨",
-    stemBackendLabel:"分轨后端", stemBackendMusicai:"music.ai（云端）", stemBackendDemucs:"Demucs 本地（开源 · 免费）",
+    stemBackendLabel:"分轨后端", stemBackendReplicate:"Replicate（云端 · Demucs）", stemBackendMusicai:"music.ai（云端）", stemBackendDemucs:"Demucs 本地（开源 · 免费）",
+    replicateLegend:'分轨走第 3 步。云端跑 Replicate 上的 Demucs（和本地同一个 htdemucs）。只需在 Vercel 加环境变量 <span class="mono">REPLICATE_API_TOKEN</span>（部署 <span class="mono">api/stems-replicate.js</span>）。按秒计费、个人可用，一首约几分钱。无需填任何 slug 或 key 到页面里。没配 token 或 demo 模式则跳过分轨，跟弹用整首伴奏。',
     demucsBaseLabel:"Demucs 本地地址",
     demucsLegend:'分轨走第 3 步。本地跑随附的 <span class="mono">demucs-server.py</span>（<span class="mono">pip install -U demucs</span> + <span class="mono">ffmpeg</span>，再 <span class="mono">python3 demucs-server.py</span>）。它把 Suno 整曲拆成人声 + 伴奏两轨，纯本地、无密钥、CPU 约 30–90 秒。没起服务则降级用整首伴奏。',
     stemLegend:'分轨走第 3 步。代理模式：Vercel 加环境变量 <span class="mono">MUSICAI_KEY</span>（部署 <span class="mono">api/stems.js</span>），或本地 <span class="mono">MUSICAI_KEY=... node local-proxy.mjs sk_live_...</span>。在 music.ai 后台建一个人声/伴奏分离 workflow，把它的 slug 填上面。没填或 demo 模式则跳过分轨，跟弹用整首伴奏。',
@@ -607,7 +610,8 @@ const I18N={
     stemSeparating:"Splitting… (~30–60s)", stemPhaseSubmit:"Submitting split job…", stemPhaseRun:s=>`Splitting… (${s})`, stemPhaseDone:"Done ✓",
     stemDone:"✓ Split into vocals + backing", stemFail:m=>`Split failed (${m}) → using full backing`, stemFallback:"Not split → play-along uses full backing",
     stemWfLabel:"music.ai workflow slug (for splitting)", stemKeyLabel:"Stem API key (direct only · in memory)", stemConn:"Stem separation",
-    stemBackendLabel:"Stem backend", stemBackendMusicai:"music.ai (cloud)", stemBackendDemucs:"Demucs local (open-source · free)",
+    stemBackendLabel:"Stem backend", stemBackendReplicate:"Replicate (cloud · Demucs)", stemBackendMusicai:"music.ai (cloud)", stemBackendDemucs:"Demucs local (open-source · free)",
+    replicateLegend:'Splitting is step 3. Runs Demucs on Replicate (same htdemucs as local). Just add a <span class="mono">REPLICATE_API_TOKEN</span> env var on Vercel (deploy <span class="mono">api/stems-replicate.js</span>). Pay-per-second, individual-friendly, a few cents per song. No slug or key in the page. If no token / demo mode, splitting is skipped and play-along uses the full backing.',
     demucsBaseLabel:"Demucs local URL",
     demucsLegend:'Splitting is step 3. Run the bundled <span class="mono">demucs-server.py</span> locally (<span class="mono">pip install -U demucs</span> + <span class="mono">ffmpeg</span>, then <span class="mono">python3 demucs-server.py</span>). It splits the Suno song into vocals + backing — fully local, no key, ~30–90s on CPU. If it is not running, play-along falls back to the full backing.',
     midiPrefix:"MIDI: ", devPrefix:"Device: ", keyPrefix:"Key: ", bpmPrefix:"Tempo: ", dash:"—",
@@ -983,8 +987,18 @@ function stemBase(mode){
 function stemUrl(mode,path){ const b=stemBase(mode); return mode==="proxy" ? b+"?path="+encodeURIComponent(path) : b+path; }
 function stemHeaders(mode){ const h={"Content-Type":"application/json"}; if(mode==="direct"){ const k=$("stemKey").value.trim(); if(k) h["Authorization"]=k; } return h; }
 // 按所选分轨后端组装请求。Demucs 本地用自己的 origin（不走 Suno 代理），无需 workflow。
+function replicateBase(){
+  const b=$("apiBase").value.trim().replace(/\/$/,"");
+  return b.endsWith("/api/suno") ? b.replace(/\/api\/suno$/,"/api/stems-replicate") : b.replace(/\/[^/]*$/,"/api/stems-replicate");
+}
 function stemCfg(){
   const backend=$("stemBackend").value, mode=$("connMode").value;
+  if(backend==="replicate"){
+    const b=replicateBase();
+    return { backend, needWf:false, headers:{"Content-Type":"application/json"},
+      post:b+"?path="+encodeURIComponent("/job"), job:id=>b+"?path="+encodeURIComponent("/job/"+id),
+      body:url=>({ params:{ inputUrl:url } }) };
+  }
   if(backend==="demucs"){
     const b=$("demucsBase").value.trim().replace(/\/$/,"");
     return { backend, needWf:false, headers:{"Content-Type":"application/json"},
@@ -1094,16 +1108,17 @@ document.querySelectorAll('#stemMix .stem-mute').forEach(btn=>{
 });
 $("stemPlay").onclick=stemPlayToggle;
 $("stemRedo").onclick=()=>{ const url=currentSongUrl(), mode=$("connMode").value, backend=$("stemBackend").value;
-  const okMusicai = backend==="demucs" || ($("stemWorkflow").value.trim() && !(mode==="direct"&&!$("stemKey").value.trim()));
+  const okMusicai = backend==="demucs" || backend==="replicate" || ($("stemWorkflow").value.trim() && !(mode==="direct"&&!$("stemKey").value.trim()));
   if(url && mode!=="demo" && okMusicai){ stems.done=false; separateStems(url); }
   else enterStemPage(); };
 // 切换分轨后端：显示对应配置块 + 文案
 function syncStemBackend(){
-  const d=$("stemBackend").value==="demucs";
-  $("stemMusicaiCfg").style.display=d?"none":"";
-  $("stemDemucsCfg").style.display=d?"":"none";
-  $("stemLegendMusicai").style.display=d?"none":"";
-  $("stemLegendDemucs").style.display=d?"":"none";
+  const v=$("stemBackend").value;
+  $("stemMusicaiCfg").style.display=v==="musicai"?"":"none";
+  $("stemDemucsCfg").style.display=v==="demucs"?"":"none";
+  $("stemLegendMusicai").style.display=v==="musicai"?"":"none";
+  $("stemLegendDemucs").style.display=v==="demucs"?"":"none";
+  $("stemLegendReplicate").style.display=v==="replicate"?"":"none";
 }
 $("stemBackend").onchange=syncStemBackend;
 // 本地打开（localhost）默认用 Demucs 本地分轨；线上默认 music.ai 云端。
