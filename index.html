@@ -59,7 +59,13 @@
     background:var(--panel);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08);
     border-radius:24px;padding:28px 34px;box-shadow:0 24px 64px rgba(0,0,0,.5)}
   .panel::before{content:"";position:absolute;left:0;top:0;right:0;height:4px;background:var(--grad)}
-  .page[data-page="3"] .panel{max-width:1180px;padding:24px 30px}
+  .page[data-page="3"]{justify-content:flex-start}
+  .page[data-page="3"] .panel{max-width:1180px;padding:18px 30px 16px;margin-top:0;margin-bottom:auto;flex:0 0 auto}
+  .page[data-page="3"] .desc{margin-bottom:8px}
+  .page[data-page="3"] #wfField{height:clamp(180px,26vh,320px)}
+  .page[data-page="3"] .piano{padding-top:30px;padding-bottom:10px}
+  .page[data-page="3"] .navrow{margin-top:10px}
+  .page[data-page="3"] .row{margin-top:6px}
   /* 关于创作者 */
   .creator{display:flex;align-items:center;gap:16px;margin:16px 0 4px}
   .cphoto{width:88px;height:88px;border-radius:50%;background:var(--grad);padding:3px;flex:0 0 auto}
@@ -71,6 +77,17 @@
   .clinks{margin-top:14px;font-size:13px;color:var(--txt2)}
   .clinks a{color:#8ab4ff;text-decoration:none}
   .clinks a:hover{text-decoration:underline}
+  /* 研发历程 timeline */
+  .vlog{margin-top:18px;border-top:1px solid rgba(255,255,255,.09);padding-top:15px}
+  .vlog-h{font-size:14px;font-weight:800}
+  .vlog-sub{font-size:12px;color:var(--dim);margin:2px 0 13px}
+  .vlist{display:flex;flex-direction:column;gap:11px}
+  .vitem{display:flex;gap:12px;align-items:flex-start}
+  .vtag{flex:0 0 auto;min-width:34px;text-align:center;font-size:11px;font-weight:800;color:#fff;
+    background:var(--grad);border-radius:9999px;padding:3px 8px;margin-top:1px;letter-spacing:.2px;box-shadow:0 4px 12px var(--glow)}
+  .vbody{flex:1 1 auto;min-width:0}
+  .vtask{font-size:13px;font-weight:700;color:var(--txt)}
+  .vdesc{font-size:12px;color:var(--txt2);line-height:1.5;margin-top:2px}
   .panel h2{margin:0 0 4px;font-size:20px;font-weight:800}
   .panel .desc{color:var(--txt2);font-size:13.5px;margin:0 0 16px;line-height:1.5}
 
@@ -467,6 +484,29 @@ Ah ah ah-ah, la la</textarea>
     </div>
     <p class="cbio" data-i18n="creatorBio">我是 Bohan,PartyKeys（视感科技）创始人,就读于哈佛大学教育学院。我相信每个人都有创造音乐的天分,缺的只是一个足够低的门槛。PartyKeys 用会发光的键盘 + AI,把「我不懂音乐」变成「我刚做了一首歌」。「光音成曲」是我在伯克利黑客松的新尝试:弹一个动机,AI 给它配一支完整乐队,灯光再带你把它弹回来。</p>
     <div class="clinks">📮 <a href="mailto:bohanzhang@gse.harvard.edu">bohanzhang@gse.harvard.edu</a> &nbsp;·&nbsp; 🎹 <a href="https://game.partykeys.org" target="_blank" rel="noopener">game.partykeys.org</a></div>
+    <div class="vlog">
+      <div class="vlog-h" data-i18n="vlogTitle">🛠️ 研发历程 · Development journey</div>
+      <div class="vlog-sub" data-i18n="vlogSub">从 MVP 到「光音成曲」的迭代记录 · From MVP to Shine Up, Notes On</div>
+      <div class="vlist">
+        <div class="vitem"><span class="vtag">v0</span><div class="vbody"><div class="vtask" data-i18n="vt0">搭建 MVP 流程</div><div class="vdesc" data-i18n="vd0">完成首个三步向导：录制 → 调音 → 跟弹，配 36 键钢琴与基础设置。</div></div></div>
+        <div class="vitem"><span class="vtag">v1</span><div class="vbody"><div class="vtask" data-i18n="vt1">确立视觉风格</div><div class="vdesc" data-i18n="vd1">加入蓝–紫–橙渐变、毛玻璃界面、动态背景、中英双语与 PartyKeys MIDI 检测。</div></div></div>
+        <div class="vitem"><span class="vtag">v2</span><div class="vbody"><div class="vtask" data-i18n="vt2">简化音乐描述</div><div class="vdesc" data-i18n="vd2">做了标签式提示词构建器，用户选风格、情绪、乐器和速度，无需手写提示词。</div></div></div>
+        <div class="vitem"><span class="vtag">v3</span><div class="vbody"><div class="vtask" data-i18n="vt3">解决混音难题</div><div class="vdesc" data-i18n="vd3">决定保留 Suno 生成，另加分轨步骤，把旋律和背景音乐分开。</div></div></div>
+        <div class="vitem"><span class="vtag">v3b</span><div class="vbody"><div class="vtask" data-i18n="vt3b">增加分轨后端</div><div class="vdesc" data-i18n="vd3b">提供两条分轨路径：本地 Demucs 离线/演示用，Music.ai 云端用，失败回退整首混音。</div></div></div>
+        <div class="vitem"><span class="vtag">v4</span><div class="vbody"><div class="vtask" data-i18n="vt4">重构产品流程</div><div class="vdesc" data-i18n="vd4">改成完整四步闭环：录制 → 调音 → 分轨 → 跟弹，并加入分轨混音台。</div></div></div>
+        <div class="vitem"><span class="vtag">v5</span><div class="vbody"><div class="vtask" data-i18n="vt5">音频转可弹音符</div><div class="vdesc" data-i18n="vd5">做了人声转 MIDI 检测，把分出的旋律变成瀑布流所需的音高与时值。</div></div></div>
+        <div class="vitem"><span class="vtag">v5b</span><div class="vbody"><div class="vtask" data-i18n="vt5b">提升识谱准确度</div><div class="vdesc" data-i18n="vd5b">修复假音符、过度切分、音高偏移和八度错误，让识别出的旋律更干净。</div></div></div>
+        <div class="vitem"><span class="vtag">v6</span><div class="vbody"><div class="vtask" data-i18n="vt6">搭建灯光教学</div><div class="vdesc" data-i18n="vd6">加入瀑布流跟弹系统：判定线、连击、进度、准确度评分和 LED 反馈。</div></div></div>
+        <div class="vitem"><span class="vtag">v6b</span><div class="vbody"><div class="vtask" data-i18n="vt6b">优化性能</div><div class="vdesc" data-i18n="vd6b">用 GPU 加速的 CSS 动画重写瀑布流，跟弹更流畅、同步更准。</div></div></div>
+        <div class="vitem"><span class="vtag">v7</span><div class="vbody"><div class="vtask" data-i18n="vt7">加强新手引导</div><div class="vdesc" data-i18n="vd7">加入 0.3 秒预亮、两段式琴键发光、硬件 LED 同步与命中迸发反馈。</div></div></div>
+        <div class="vitem"><span class="vtag">v8</span><div class="vbody"><div class="vtask" data-i18n="vt8">打磨布局</div><div class="vdesc" data-i18n="vd8">放大主卡片与瀑布流，键盘全宽显示，并改进琴键的响应式定位。</div></div></div>
+        <div class="vitem"><span class="vtag">v9</span><div class="vbody"><div class="vtask" data-i18n="vt9">优化生成时刻</div><div class="vdesc" data-i18n="vd9">主按钮改名「SUNO – Generate!」，生成曲播放时加入跑道式光环。</div></div></div>
+        <div class="vitem"><span class="vtag">v10</span><div class="vbody"><div class="vtask" data-i18n="vt10">升级跟弹体验</div><div class="vdesc" data-i18n="vd10">加入跟弹模式：弹错时音乐暂停，直到弹对才继续；并加强庆祝特效。</div></div></div>
+        <div class="vitem"><span class="vtag">v11</span><div class="vbody"><div class="vtask" data-i18n="vt11">增加学习模式</div><div class="vdesc" data-i18n="vd11">加入 跟弹 / 连弹 切换：跟弹等你弹对，连弹保持音乐前进；并平滑八度跳跃、去掉过密音符。</div></div></div>
+        <div class="vitem"><span class="vtag">v12</span><div class="vbody"><div class="vtask" data-i18n="vt12">改善等待体验</div><div class="vdesc" data-i18n="vd12">分轨进行时先试听预览，分轨完成或失败后淡出。</div></div></div>
+        <div class="vitem"><span class="vtag">v13</span><div class="vbody"><div class="vtask" data-i18n="vt13">确定品牌</div><div class="vdesc" data-i18n="vd13">产品定名 Shine Up, Notes On（首字母藏 SUNO），并加上中文名「光音成曲」。</div></div></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -578,6 +618,24 @@ const I18N={
     clear:"清空", next:"下一步 →", back:"← 上一步", restart:"🔄 重来",
     aboutCreator:"👤 关于创作者", aboutTitle:"👤 关于创作者", creatorName:"张博涵 · Bohan Zhang", creatorRole:"PartyKeys 视感科技 创始人 · Harvard GSE",
     creatorBio:"我是 Bohan，PartyKeys（视感科技）创始人，就读于哈佛大学教育学院。我相信每个人都有创造音乐的天分，缺的只是一个足够低的门槛。PartyKeys 用会发光的键盘 + AI，把「我不懂音乐」变成「我刚做了一首歌」。「光音成曲」是我在伯克利黑客松的新尝试：弹一个动机，AI 给它配一支完整乐队，灯光再带你把它弹回来。",
+    vlogTitle:"🛠️ 研发历程", vlogSub:"从 MVP 到「光音成曲」的迭代记录",
+    vt0:"搭建 MVP 流程", vd0:"完成首个三步向导：录制 → 调音 → 跟弹，配 36 键钢琴与基础设置。",
+    vt1:"确立视觉风格", vd1:"加入蓝–紫–橙渐变、毛玻璃界面、动态背景、中英双语与 PartyKeys MIDI 检测。",
+    vt2:"简化音乐描述", vd2:"做了标签式提示词构建器，用户选风格、情绪、乐器和速度，无需手写提示词。",
+    vt3:"解决混音难题", vd3:"决定保留 Suno 生成，另加分轨步骤，把旋律和背景音乐分开。",
+    vt3b:"增加分轨后端", vd3b:"提供两条分轨路径：本地 Demucs 离线/演示用，Music.ai 云端用，失败回退整首混音。",
+    vt4:"重构产品流程", vd4:"改成完整四步闭环：录制 → 调音 → 分轨 → 跟弹，并加入分轨混音台。",
+    vt5:"音频转可弹音符", vd5:"做了人声转 MIDI 检测，把分出的旋律变成瀑布流所需的音高与时值。",
+    vt5b:"提升识谱准确度", vd5b:"修复假音符、过度切分、音高偏移和八度错误，让识别出的旋律更干净。",
+    vt6:"搭建灯光教学", vd6:"加入瀑布流跟弹系统：判定线、连击、进度、准确度评分和 LED 反馈。",
+    vt6b:"优化性能", vd6b:"用 GPU 加速的 CSS 动画重写瀑布流，跟弹更流畅、同步更准。",
+    vt7:"加强新手引导", vd7:"加入 0.3 秒预亮、两段式琴键发光、硬件 LED 同步与命中迸发反馈。",
+    vt8:"打磨布局", vd8:"放大主卡片与瀑布流，键盘全宽显示，并改进琴键的响应式定位。",
+    vt9:"优化生成时刻", vd9:"主按钮改名「SUNO – Generate!」，生成曲播放时加入跑道式光环。",
+    vt10:"升级跟弹体验", vd10:"加入跟弹模式：弹错时音乐暂停，直到弹对才继续；并加强庆祝特效。",
+    vt11:"增加学习模式", vd11:"加入 跟弹 / 连弹 切换：跟弹等你弹对，连弹保持音乐前进；并平滑八度跳跃、去掉过密音符。",
+    vt12:"改善等待体验", vd12:"分轨进行时先试听预览，分轨完成或失败后淡出。",
+    vt13:"确定品牌", vd13:"产品定名 Shine Up, Notes On（首字母藏 SUNO），并加上中文名「光音成曲」。",
     grpStyle:"风格", grpTempo:"速度", grpInst:"主要乐器（可多选）", grpVocal:"人声",
     promptLabel:"Suno 提示词（可手动修改）", promptPh:"先录一个动机…", lyricsLabel:"人声内容（啊啊啊，无歌词）",
     genBtn:"SUNO - Generate!", genIdle:"未开始",
@@ -629,6 +687,24 @@ const I18N={
     clear:"Clear", next:"Next →", back:"← Back", restart:"🔄 Restart",
     aboutCreator:"👤 About the creator", aboutTitle:"👤 About the creator", creatorName:"Bohan Zhang · 张博涵", creatorRole:"Founder, PartyKeys · Harvard GSE",
     creatorBio:"I'm Bohan, founder of PartyKeys and a student at the Harvard Graduate School of Education. I believe everyone is musical — they just need a low enough barrier to start. PartyKeys pairs a light-up keyboard with AI to turn \"I'm not musical\" into \"I just made a song.\" Shine Up, Notes On is my Berklee Hackathon take on that idea: play one motif, let AI give it a full band, and let the lights teach you to play it back.",
+    vlogTitle:"🛠️ Development journey", vlogSub:"From MVP to Shine Up, Notes On",
+    vt0:"Build MVP flow", vd0:"Created the first 3-step wizard: Record → Tune → Play-along, with a 36-key piano and basic settings.",
+    vt1:"Define visual identity", vd1:"Added blue–purple–orange gradient style, glass UI, animated background, bilingual support, and PartyKeys MIDI detection.",
+    vt2:"Simplify music prompting", vd2:"Built a chip-based prompt builder so users can choose genre, mood, instruments, and tempo instead of writing prompts manually.",
+    vt3:"Solve mixed-audio problem", vd3:"Decided to keep Suno generation but add a separate stem-separation step to split melody and background music.",
+    vt3b:"Add stem backend options", vd3b:"Added two separation paths: local Demucs for offline/demo use and Music.ai for cloud use, with fallback to full mix.",
+    vt4:"Restructure product flow", vd4:"Changed the app into a full 4-step loop: Record → Tune → Separate → Play-along. Added a stem mixer.",
+    vt5:"Convert audio to playable notes", vd5:"Built vocal-to-MIDI detection to turn the separated melody into pitch and duration data for the waterfall.",
+    vt5b:"Improve note accuracy", vd5b:"Fixed fake notes, over-segmentation, pitch bias, and octave errors to make the detected melody cleaner.",
+    vt6:"Build light-guided learning", vd6:"Added the waterfall play-along system with judgment line, combo, progress, accuracy score, and LED feedback.",
+    vt6b:"Improve performance", vd6b:"Rebuilt the waterfall with GPU-accelerated CSS animation so the play-along becomes smoother and better synchronized.",
+    vt7:"Add beginner guidance", vd7:"Added 0.3-second pre-lighting, two-stage key glow, synchronized hardware LEDs, and hit burst feedback.",
+    vt8:"Polish layout", vd8:"Expanded the main cards and waterfall, made the keyboard full-width, and improved responsive key positioning.",
+    vt9:"Improve generation moment", vd9:"Renamed the main button “SUNO – Generate!” and added a racetrack-style glow during generated song playback.",
+    vt10:"Upgrade play-along behavior", vd10:"Added Follow mode, where wrong notes pause the music until the correct note is played. Added stronger celebration effects.",
+    vt11:"Add learning modes", vd11:"Added Follow / Flow toggle: Follow waits for correct notes; Flow keeps the music moving. Also smoothed octave jumps and removed overly dense notes.",
+    vt12:"Improve waiting experience", vd12:"Added preview playback while stem separation is running, then fades it out when separation completes or fails.",
+    vt13:"Finalize branding", vd13:"Renamed the product Shine Up, Notes On, hiding SUNO in the initials, and added the Chinese name 光音成曲.",
     grpStyle:"Style", grpTempo:"Tempo", grpInst:"Instruments (multi)", grpVocal:"Vocals",
     promptLabel:"Suno prompt (editable)", promptPh:"Record a motif first…", lyricsLabel:"Vocal content (wordless \"ah\")",
     genBtn:"SUNO - Generate!", genIdle:"Not started",
