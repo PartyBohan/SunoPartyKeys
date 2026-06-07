@@ -257,7 +257,6 @@
       <span class="dot" data-step="2"></span>
       <span class="dot" data-step="3"></span>
     </div>
-    <div class="stepname" id="stepName"></div>
   </div>
 
   <div class="deck" id="deck">
@@ -381,7 +380,7 @@
             <div id="wfBurst"></div>
             <div id="wfLine"></div>
             <div id="wfCelebrate" class="wfcele hidden">
-              <div class="celebig" data-i18n="celebrate">Congratulations!</div>
+              <div class="celebig" id="celeBig" data-i18n="celebrate">Congratulations!</div>
               <div class="celesub" id="celeSub"></div>
             </div>
           </div>
@@ -769,7 +768,6 @@ function refreshDynamic(){
   $("pillKey").textContent=_key?t("keyPrefix")+_key.name:t("dash");
   $("pillBpm").textContent=_bpm?t("bpmPrefix")+effectiveBpm()+" bpm":t("dash");
   $("recBtn").textContent=recording?t("recStop"):t("recStart");
-  $("stepName").textContent=t("stepNames")[curPage]||"";
 }
 
 /* ---------- MIDI 接入 ---------- */
@@ -961,7 +959,7 @@ function composePrompt(){
   if(motif.length) parts.push("build the main melody around this exact motif: "+motif.join(" "));
   parts.push("in "+k.name, "around "+effectiveBpm()+" bpm", mood);
   if(inst.length) parts.push("featuring "+inst.join(" and "));
-  parts.push(CHIPS.vocal.items[SEL.vocal].desc, "simple and beginner-friendly");
+  parts.push(CHIPS.vocal.items[SEL.vocal].desc, "simple and beginner-friendly", "generate very short musical piece");
   $("promptBox").value=parts.filter(Boolean).join(", ");
 }
 
@@ -1574,6 +1572,7 @@ async function wfStart(){
 function wfStop(){
   wf.active=false; wf.paused=false; if(wf.timer){clearInterval(wf.timer); wf.timer=null;}
   if(wf.fwTimer){ clearInterval(wf.fwTimer); wf.fwTimer=null; }
+  if(wf.liveTimer){ clearTimeout(wf.liveTimer); wf.liveTimer=null; }
   try{$("aInst").pause();}catch(_){}
   for(const m of wf.lit) litOff(m); wf.lit.clear(); wf.litStrong={}; ledAllOff(); wf._ledKey=null;
   wf.waitEl=null; $("wfField").classList.remove("paused"); $("wfCelebrate").classList.add("hidden");
@@ -1700,8 +1699,14 @@ function wfFinish(){
   $("scoreN").textContent=acc;
   wf._hint=t(acc>=80?"scoreGreat":(acc>=50?"scoreGood":"scoreTry")); $("wfHint").textContent=wf._hint;
   // 庆祝：大字 + 撒满全场的大礼花
+  $("celeBig").textContent=t("celebrate");
   $("celeSub").textContent=t("celeAcc",acc,wf.maxCombo);
   $("wfCelebrate").classList.remove("hidden");
+  // 2 秒后把「Congratulations!」换成上线地址
+  if(wf.liveTimer) clearTimeout(wf.liveTimer);
+  wf.liveTimer=setTimeout(()=>{
+    if(wf.finished && !$("wfCelebrate").classList.contains("hidden")) $("celeBig").textContent="live on suno.partykeys.org";
+  },2000);
   const r=$("wfField").getBoundingClientRect(), W=r.width, H=wf.fieldH;
   if(wf.fwTimer) clearInterval(wf.fwTimer);
   for(let i=0;i<6;i++) setTimeout(()=>wfFirework(W*(0.15+0.14*i),50+Math.random()*60), i*120);
