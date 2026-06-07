@@ -76,7 +76,9 @@
   @media(max-width:700px){.creators{grid-template-columns:1fr;gap:6px}}
   .creator{display:flex;align-items:center;gap:16px;margin:16px 0 4px}
   .cphoto{width:88px;height:88px;border-radius:50%;background:var(--grad);padding:3px;flex:0 0 auto}
-  .cphoto img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+  .cphoto img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;overflow:hidden}
+  .cphoto.zoom{overflow:hidden}
+  .cphoto.zoom img{transform:scale(1.7);transform-origin:50% 22%}
   .cphoto-fb{display:none;width:100%;height:100%;border-radius:50%;align-items:center;justify-content:center;font-size:36px;font-weight:900;color:#fff;background:#14141f}
   .cname{font-size:19px;font-weight:800}
   .crole{color:var(--txt2);font-size:13px;margin-top:4px}
@@ -489,7 +491,7 @@ Ah ah ah-ah, la la</textarea>
             <div class="cphoto-fb">B</div>
           </div>
           <div class="cmeta">
-            <div class="cname" data-i18n="creatorName">张博涵 · Bohan Zhang</div>
+            <div class="cname" data-i18n="creatorName">Bohan Zhang</div>
             <div class="crole" data-i18n="creatorRole">PartyKeys 视感科技 创始人 · Harvard GSE</div>
           </div>
         </div>
@@ -498,12 +500,12 @@ Ah ah ah-ah, la la</textarea>
       </div>
       <div class="creator-col">
         <div class="creator">
-          <div class="cphoto">
-            <img src="assets/andrina.jpg" alt="Andrina" style="object-position:center 18%" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="cphoto-fb">A</div>
+          <div class="cphoto zoom">
+            <img src="assets/andrina.jpg" alt="Xiaoxuan (Andrina) Zhang" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="cphoto-fb">X</div>
           </div>
           <div class="cmeta">
-            <div class="cname" data-i18n="creator2Name">Andrina</div>
+            <div class="cname" data-i18n="creator2Name">Xiaoxuan (Andrina) Zhang</div>
             <div class="crole" data-i18n="creator2Role">MIT Media Lab · 未来歌剧研究组 研究助理</div>
           </div>
         </div>
@@ -643,9 +645,9 @@ const I18N={
     p2Title:"🎨 调一调你的歌", p2Desc:"点选风格、速度、乐器和人声，它们会自动写进下面的提示词。满意了就生成。",
     p3Title:"✨ 跟着光弹", p3Desc:"从人声扒出来的旋律单音从上往下落，背景音乐同步播放。音符到判定线、琴键亮起时跟着拍子弹——你弹的就是这首歌的主旋律。",
     clear:"清空", next:"下一步 →", back:"← 上一步", restart:"🔄 重来",
-    aboutCreator:"👤 关于创作者", aboutTitle:"👤 关于创作者", creatorName:"张博涵 · Bohan Zhang", creatorRole:"PartyKeys 视感科技 创始人 · Harvard GSE",
+    aboutCreator:"👤 关于创作者", aboutTitle:"👤 关于创作者", creatorName:"Bohan Zhang", creatorRole:"PartyKeys 视感科技 创始人 · Harvard GSE",
     creatorBio:"我是 Bohan，PartyKeys（视感科技）创始人，就读于哈佛大学教育学院。我相信每个人都有创造音乐的天分，缺的只是一个足够低的门槛。PartyKeys 用会发光的键盘 + AI，把「我不懂音乐」变成「我刚做了一首歌」。「光音成曲」是我在伯克利黑客松的新尝试：弹一个动机，AI 给它配一支完整乐队，灯光再带你把它弹回来。",
-    creator2Name:"Andrina", creator2Role:"MIT Media Lab · 未来歌剧研究组 研究助理",
+    creator2Name:"Xiaoxuan (Andrina) Zhang", creator2Role:"MIT Media Lab · 未来歌剧研究组 研究助理",
     creator2Bio:"我是 Andrina，MIT Media Lab「未来歌剧」(Opera of the Future)研究组的研究助理。2024 年春从加州大学圣地亚哥分校毕业，取得认知科学理学士与计算机音乐文学士双学位，之后在 Bose 从事家庭影院产品研发一年，再加入 MIT。我热衷于把互动式、空间化的音乐体验带入不同系统，同时守护人类创造力的本质。",
     vlogTitle:"🛠️ 研发历程", vlogSub:"从 MVP 到「光音成曲」的迭代记录",
     vt0:"搭建 MVP 流程", vd0:"完成首个三步向导：录制 → 调音 → 跟弹，配 36 键钢琴与基础设置。",
@@ -714,9 +716,9 @@ const I18N={
     p2Title:"🎨 Tune your song", p2Desc:"Pick a style, tempo, instruments and vocals — they get written straight into the prompt below. Generate when happy.",
     p3Title:"✨ Play along", p3Desc:"The melody extracted from the vocal falls from the top while the background music plays in sync. Play each note in time as it reaches the line and its key lights up — you're playing the song's lead melody.",
     clear:"Clear", next:"Next →", back:"← Back", restart:"🔄 Restart",
-    aboutCreator:"👤 About the creator", aboutTitle:"👤 About the creator", creatorName:"Bohan Zhang · 张博涵", creatorRole:"Founder, PartyKeys · Harvard GSE",
+    aboutCreator:"👤 About the creator", aboutTitle:"👤 About the creator", creatorName:"Bohan Zhang", creatorRole:"Founder, PartyKeys · Harvard GSE",
     creatorBio:"I'm Bohan, founder of PartyKeys and a student at the Harvard Graduate School of Education. I believe everyone is musical — they just need a low enough barrier to start. PartyKeys pairs a light-up keyboard with AI to turn \"I'm not musical\" into \"I just made a song.\" Shine Up, Notes On is my Berklee Hackathon take on that idea: play one motif, let AI give it a full band, and let the lights teach you to play it back.",
-    creator2Name:"Andrina", creator2Role:"Research Assistant, Opera of the Future · MIT Media Lab",
+    creator2Name:"Xiaoxuan (Andrina) Zhang", creator2Role:"Research Assistant, Opera of the Future · MIT Media Lab",
     creator2Bio:"I'm Andrina, a research assistant in the Opera of the Future group at MIT Media Lab. After graduating from UC San Diego with a B.S. in Cognitive Science and a B.A. in Computer Music in Spring 2024, I worked at Bose on the home theater products for a year prior to my current role at MIT. I'm interested in bringing interactive and spatial musical experiences to different systems while preserving the essence of human creativity.",
     vlogTitle:"🛠️ Development journey", vlogSub:"From MVP to Shine Up, Notes On",
     vt0:"Build MVP flow", vd0:"Created the first 3-step wizard: Record → Tune → Play-along, with a 36-key piano and basic settings.",
