@@ -1745,9 +1745,16 @@ $("settingsModal").addEventListener("click",e=>{ if(e.target.id==="settingsModal
 
 /* ---------- 向导导航 ---------- */
 let curPage=0;
+function stopAllAudio(){
+  try{ player().pause(); }catch(_){}
+  try{ stopBacking(); }catch(_){}
+  try{ stemPreviewStop(); }catch(_){}
+  ["aVocal","aInst"].forEach(id=>{ try{ $(id).pause(); }catch(_){} });
+}
 function showPage(i){
   if(i===curPage) return;
   onLeavePage(curPage);
+  stopAllAudio();
   curPage=i;
   document.querySelectorAll(".page").forEach((p,idx)=>{
     p.classList.toggle("active", idx===i);
