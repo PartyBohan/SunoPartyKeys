@@ -211,6 +211,9 @@
   audio{width:100%;margin-top:14px}
 
   /* HUD page3 */
+  .hudrow{display:flex;align-items:center;justify-content:center;gap:30px;flex-wrap:wrap;margin:6px 0 2px}
+  .hudrow .hud{margin:0}
+  .hudrow .wfmode{margin:0}
   .hud{display:flex;gap:24px;justify-content:center;margin:6px 0 2px}
   .hud div{text-align:center}
   .hud .v{font-size:30px;font-weight:800;line-height:1.1}
@@ -360,16 +363,18 @@
       <div class="panel">
         <h2 data-i18n="p3Title">✨ 跟着光弹</h2>
         <p class="desc" data-i18n="p3Desc">从人声扒出来的旋律单音从上往下落，背景音乐同步播放。音符到判定线、琴键亮起时跟着拍子弹——你弹的就是这首歌的主旋律。</p>
-        <div class="hud">
-          <div><div class="v" id="progN">0/0</div><div class="k" data-i18n="statProg">进度</div></div>
-          <div><div class="v" id="comboN">0</div><div class="k" data-i18n="statCombo">连击</div></div>
-          <div><div class="v score" id="scoreN">—</div><div class="k" data-i18n="statScore">得分</div></div>
+        <div class="hudrow">
+          <div class="hud">
+            <div><div class="v" id="progN">0/0</div><div class="k" data-i18n="statProg">进度</div></div>
+            <div><div class="v" id="comboN">0</div><div class="k" data-i18n="statCombo">连击</div></div>
+            <div><div class="v score" id="scoreN">—</div><div class="k" data-i18n="statScore">得分</div></div>
+          </div>
+          <div class="wfmode" id="wfMode">
+            <button class="wfmode-btn active" data-mode="follow" data-i18n="modeFollow">跟弹</button>
+            <button class="wfmode-btn" data-mode="flow" data-i18n="modeFlow">连弹</button>
+          </div>
         </div>
-        <div class="wfmode" id="wfMode">
-          <button class="wfmode-btn active" data-mode="follow" data-i18n="modeFollow">跟弹</button>
-          <button class="wfmode-btn" data-mode="flow" data-i18n="modeFlow">连弹</button>
-        </div>
-        <div class="wfhint" id="wfHint"></div>
+        <div class="wfhint" id="wfHint" style="display:none"></div>
         <div class="pianowrap" id="playfield3">
           <div id="wfField">
             <div id="wfNotes"></div>
