@@ -67,6 +67,13 @@
   .page[data-page="3"] .navrow{margin-top:10px}
   .page[data-page="3"] .row{margin-top:6px}
   /* 关于创作者 */
+  #aboutModal .modal{width:min(920px,95vw)}
+  .creators{display:grid;grid-template-columns:1fr 1fr;gap:14px 28px;margin-top:14px}
+  .creator-col{min-width:0}
+  .creator-col .creator{margin-top:0}
+  .creator-col .cbio{margin:12px 0 0}
+  .creator-col .clinks{margin-top:11px}
+  @media(max-width:700px){.creators{grid-template-columns:1fr;gap:6px}}
   .creator{display:flex;align-items:center;gap:16px;margin:16px 0 4px}
   .cphoto{width:88px;height:88px;border-radius:50%;background:var(--grad);padding:3px;flex:0 0 auto}
   .cphoto img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
@@ -474,18 +481,36 @@ Ah ah ah-ah, la la</textarea>
   <div class="modal">
     <button class="x btn-ghost" id="closeAbout">✕</button>
     <h3 data-i18n="aboutTitle">👤 关于创作者</h3>
-    <div class="creator">
-      <div class="cphoto">
-        <img id="creatorImg" src="assets/creator.jpg" alt="creator" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <div class="cphoto-fb">B</div>
+    <div class="creators">
+      <div class="creator-col">
+        <div class="creator">
+          <div class="cphoto">
+            <img id="creatorImg" src="assets/creator.jpg" alt="creator" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="cphoto-fb">B</div>
+          </div>
+          <div class="cmeta">
+            <div class="cname" data-i18n="creatorName">张博涵 · Bohan Zhang</div>
+            <div class="crole" data-i18n="creatorRole">PartyKeys 视感科技 创始人 · Harvard GSE</div>
+          </div>
+        </div>
+        <p class="cbio" data-i18n="creatorBio">我是 Bohan,PartyKeys（视感科技）创始人,就读于哈佛大学教育学院。我相信每个人都有创造音乐的天分,缺的只是一个足够低的门槛。PartyKeys 用会发光的键盘 + AI,把「我不懂音乐」变成「我刚做了一首歌」。「光音成曲」是我在伯克利黑客松的新尝试:弹一个动机,AI 给它配一支完整乐队,灯光再带你把它弹回来。</p>
+        <div class="clinks">📮 <a href="mailto:bohanzhang@gse.harvard.edu">bohanzhang@gse.harvard.edu</a> &nbsp;·&nbsp; 🌐 <a href="https://www.partykeys.com" target="_blank" rel="noopener">www.partykeys.com</a><br>📷 <a href="https://instagram.com/partybohan" target="_blank" rel="noopener">@Partybohan</a> &nbsp;·&nbsp; <a href="https://instagram.com/popumusic.official" target="_blank" rel="noopener">@Popumusic.official</a></div>
       </div>
-      <div class="cmeta">
-        <div class="cname" data-i18n="creatorName">张博涵 · Bohan Zhang</div>
-        <div class="crole" data-i18n="creatorRole">PartyKeys 视感科技 创始人 · Harvard GSE</div>
+      <div class="creator-col">
+        <div class="creator">
+          <div class="cphoto">
+            <img src="assets/andrina.jpg" alt="Andrina" style="object-position:center 18%" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="cphoto-fb">A</div>
+          </div>
+          <div class="cmeta">
+            <div class="cname" data-i18n="creator2Name">Andrina</div>
+            <div class="crole" data-i18n="creator2Role">MIT Media Lab · 未来歌剧研究组 研究助理</div>
+          </div>
+        </div>
+        <p class="cbio" data-i18n="creator2Bio">我是 Andrina,MIT Media Lab「未来歌剧」(Opera of the Future)研究组的研究助理。2024 年春从加州大学圣地亚哥分校毕业,取得认知科学理学士与计算机音乐文学士双学位,之后在 Bose 从事家庭影院产品研发一年,再加入 MIT。我热衷于把互动式、空间化的音乐体验带入不同系统,同时守护人类创造力的本质。</p>
+        <div class="clinks">📮 <a href="mailto:andrina@mit.edu">andrina@mit.edu</a><br>🌐 <a href="https://andrinazxx.github.io/portfolio.html" target="_blank" rel="noopener">andrinazxx.github.io/portfolio</a></div>
       </div>
     </div>
-    <p class="cbio" data-i18n="creatorBio">我是 Bohan,PartyKeys（视感科技）创始人,就读于哈佛大学教育学院。我相信每个人都有创造音乐的天分,缺的只是一个足够低的门槛。PartyKeys 用会发光的键盘 + AI,把「我不懂音乐」变成「我刚做了一首歌」。「光音成曲」是我在伯克利黑客松的新尝试:弹一个动机,AI 给它配一支完整乐队,灯光再带你把它弹回来。</p>
-    <div class="clinks">📮 <a href="mailto:bohanzhang@gse.harvard.edu">bohanzhang@gse.harvard.edu</a> &nbsp;·&nbsp; 🌐 <a href="https://www.partykeys.com" target="_blank" rel="noopener">www.partykeys.com</a><br>📷 <a href="https://instagram.com/partybohan" target="_blank" rel="noopener">@Partybohan</a> &nbsp;·&nbsp; <a href="https://instagram.com/popumusic.official" target="_blank" rel="noopener">@Popumusic.official</a></div>
     <div class="vlog">
       <div class="vlog-h" data-i18n="vlogTitle">🛠️ 研发历程 · Development journey</div>
       <div class="vlog-sub" data-i18n="vlogSub">从 MVP 到「光音成曲」的迭代记录 · From MVP to Shine Up, Notes On</div>
@@ -620,6 +645,8 @@ const I18N={
     clear:"清空", next:"下一步 →", back:"← 上一步", restart:"🔄 重来",
     aboutCreator:"👤 关于创作者", aboutTitle:"👤 关于创作者", creatorName:"张博涵 · Bohan Zhang", creatorRole:"PartyKeys 视感科技 创始人 · Harvard GSE",
     creatorBio:"我是 Bohan，PartyKeys（视感科技）创始人，就读于哈佛大学教育学院。我相信每个人都有创造音乐的天分，缺的只是一个足够低的门槛。PartyKeys 用会发光的键盘 + AI，把「我不懂音乐」变成「我刚做了一首歌」。「光音成曲」是我在伯克利黑客松的新尝试：弹一个动机，AI 给它配一支完整乐队，灯光再带你把它弹回来。",
+    creator2Name:"Andrina", creator2Role:"MIT Media Lab · 未来歌剧研究组 研究助理",
+    creator2Bio:"我是 Andrina，MIT Media Lab「未来歌剧」(Opera of the Future)研究组的研究助理。2024 年春从加州大学圣地亚哥分校毕业，取得认知科学理学士与计算机音乐文学士双学位，之后在 Bose 从事家庭影院产品研发一年，再加入 MIT。我热衷于把互动式、空间化的音乐体验带入不同系统，同时守护人类创造力的本质。",
     vlogTitle:"🛠️ 研发历程", vlogSub:"从 MVP 到「光音成曲」的迭代记录",
     vt0:"搭建 MVP 流程", vd0:"完成首个三步向导：录制 → 调音 → 跟弹，配 36 键钢琴与基础设置。",
     vt1:"确立视觉风格", vd1:"加入蓝–紫–橙渐变、毛玻璃界面、动态背景、中英双语与 PartyKeys MIDI 检测。",
@@ -689,6 +716,8 @@ const I18N={
     clear:"Clear", next:"Next →", back:"← Back", restart:"🔄 Restart",
     aboutCreator:"👤 About the creator", aboutTitle:"👤 About the creator", creatorName:"Bohan Zhang · 张博涵", creatorRole:"Founder, PartyKeys · Harvard GSE",
     creatorBio:"I'm Bohan, founder of PartyKeys and a student at the Harvard Graduate School of Education. I believe everyone is musical — they just need a low enough barrier to start. PartyKeys pairs a light-up keyboard with AI to turn \"I'm not musical\" into \"I just made a song.\" Shine Up, Notes On is my Berklee Hackathon take on that idea: play one motif, let AI give it a full band, and let the lights teach you to play it back.",
+    creator2Name:"Andrina", creator2Role:"Research Assistant, Opera of the Future · MIT Media Lab",
+    creator2Bio:"I'm Andrina, a research assistant in the Opera of the Future group at MIT Media Lab. After graduating from UC San Diego with a B.S. in Cognitive Science and a B.A. in Computer Music in Spring 2024, I worked at Bose on the home theater products for a year prior to my current role at MIT. I'm interested in bringing interactive and spatial musical experiences to different systems while preserving the essence of human creativity.",
     vlogTitle:"🛠️ Development journey", vlogSub:"From MVP to Shine Up, Notes On",
     vt0:"Build MVP flow", vd0:"Created the first 3-step wizard: Record → Tune → Play-along, with a 36-key piano and basic settings.",
     vt1:"Define visual identity", vd1:"Added blue–purple–orange gradient style, glass UI, animated background, bilingual support, and PartyKeys MIDI detection.",
@@ -1702,11 +1731,11 @@ function wfFinish(){
   $("celeBig").textContent=t("celebrate");
   $("celeSub").textContent=t("celeAcc",acc,wf.maxCombo);
   $("wfCelebrate").classList.remove("hidden");
-  // 2 秒后把「Congratulations!」换成上线地址
+  // 3 秒后把「Congratulations!」换成上线地址
   if(wf.liveTimer) clearTimeout(wf.liveTimer);
   wf.liveTimer=setTimeout(()=>{
-    if(wf.finished && !$("wfCelebrate").classList.contains("hidden")) $("celeBig").textContent="live on suno.partykeys.org";
-  },2000);
+    if(wf.finished && !$("wfCelebrate").classList.contains("hidden")) $("celeBig").textContent="Live on suno.partykeys.org";
+  },3000);
   const r=$("wfField").getBoundingClientRect(), W=r.width, H=wf.fieldH;
   if(wf.fwTimer) clearInterval(wf.fwTimer);
   for(let i=0;i<6;i++) setTimeout(()=>wfFirework(W*(0.15+0.14*i),50+Math.random()*60), i*120);
