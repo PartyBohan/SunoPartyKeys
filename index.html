@@ -59,6 +59,18 @@
     background:var(--panel);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.08);
     border-radius:24px;padding:28px 34px;box-shadow:0 24px 64px rgba(0,0,0,.5)}
   .panel::before{content:"";position:absolute;left:0;top:0;right:0;height:4px;background:var(--grad)}
+  .page[data-page="3"] .panel{max-width:1180px;padding:24px 30px}
+  /* 关于创作者 */
+  .creator{display:flex;align-items:center;gap:16px;margin:16px 0 4px}
+  .cphoto{width:88px;height:88px;border-radius:50%;background:var(--grad);padding:3px;flex:0 0 auto}
+  .cphoto img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+  .cphoto-fb{display:none;width:100%;height:100%;border-radius:50%;align-items:center;justify-content:center;font-size:36px;font-weight:900;color:#fff;background:#14141f}
+  .cname{font-size:19px;font-weight:800}
+  .crole{color:var(--txt2);font-size:13px;margin-top:4px}
+  .cbio{color:var(--txt2);font-size:13.5px;line-height:1.65;margin:14px 0 0}
+  .clinks{margin-top:14px;font-size:13px;color:var(--txt2)}
+  .clinks a{color:#8ab4ff;text-decoration:none}
+  .clinks a:hover{text-decoration:underline}
   .panel h2{margin:0 0 4px;font-size:20px;font-weight:800}
   .panel .desc{color:var(--txt2);font-size:13.5px;margin:0 0 16px;line-height:1.5}
 
@@ -294,19 +306,19 @@
         <div class="stemmix" id="stemMix">
           <div class="stemcard" data-stem="vocal">
             <span class="sname">🎤 <span data-i18n="stemVocal">旋律</span></span>
+            <button class="btn-ghost stem-dl" data-i18n-title="stemDl" style="display:none">⬇️</button>
             <span class="lockhint" data-i18n="stemLockHint">需 music.ai 分轨</span>
             <canvas class="wave"></canvas>
             <span class="stembtns">
-              <button class="btn-ghost stem-dl" data-i18n-title="stemDl" style="display:none">⬇️</button>
               <button class="btn-ghost stem-mute" data-i18n-title="stemMute">🔊</button>
             </span>
           </div>
           <div class="stemcard" data-stem="inst">
             <span class="sname">🎸 <span data-i18n="stemInst">背景音乐</span></span>
+            <button class="btn-ghost stem-dl" data-i18n-title="stemDl" style="display:none">⬇️</button>
             <span class="lockhint" data-i18n="stemLockHint">需 music.ai 分轨</span>
             <canvas class="wave"></canvas>
             <span class="stembtns">
-              <button class="btn-ghost stem-dl" data-i18n-title="stemDl" style="display:none">⬇️</button>
               <button class="btn-ghost stem-mute" data-i18n-title="stemMute">🔊</button>
             </span>
           </div>
@@ -358,7 +370,7 @@
         </div>
         <div class="navrow">
           <button class="btn-ghost" id="back3" data-i18n="back">← 上一步</button>
-          <span></span>
+          <button class="btn-ghost" id="aboutBtn" data-i18n="aboutCreator">👤 关于创作者</button>
         </div>
       </div>
     </section>
@@ -435,6 +447,26 @@ Ah ah ah-ah, la la</textarea>
       <div class="legend" id="stemLegendDemucs" data-i18n="demucsLegend" style="text-align:left;display:none">分轨走第 3 步。本地跑随附的 <span class="mono">demucs-server.py</span>（<span class="mono">pip install -U demucs</span> + <span class="mono">ffmpeg</span>，再 <span class="mono">python3 demucs-server.py</span>）。它把 Suno 整曲拆成人声 + 伴奏两轨，纯本地、无密钥、CPU 约 30–90 秒。没起服务则降级用整首伴奏。</div>
       <div class="legend" id="stemLegendReplicate" data-i18n="replicateLegend" style="text-align:left;display:none">分轨走第 3 步。云端跑 Replicate 上的 Demucs（和本地同一个 htdemucs）。只需在 Vercel 加环境变量 <span class="mono">REPLICATE_API_TOKEN</span>（部署 <span class="mono">api/stems-replicate.js</span>）。按秒计费、个人可用，一首约几分钱。无需填任何 slug 或 key 到页面里。没配 token 或 demo 模式则跳过分轨，跟弹用整首伴奏。</div>
     </details>
+  </div>
+</div>
+
+<!-- ===== about-creator modal ===== -->
+<div class="modal-back" id="aboutModal">
+  <div class="modal">
+    <button class="x btn-ghost" id="closeAbout">✕</button>
+    <h3 data-i18n="aboutTitle">👤 关于创作者</h3>
+    <div class="creator">
+      <div class="cphoto">
+        <img id="creatorImg" src="assets/creator.jpg" alt="creator" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="cphoto-fb">B</div>
+      </div>
+      <div class="cmeta">
+        <div class="cname" data-i18n="creatorName">张博涵 · Bohan Zhang</div>
+        <div class="crole" data-i18n="creatorRole">PartyKeys 视感科技 创始人 · Harvard GSE</div>
+      </div>
+    </div>
+    <p class="cbio" data-i18n="creatorBio">我是 Bohan,PartyKeys（视感科技）创始人,就读于哈佛大学教育学院。我相信每个人都有创造音乐的天分,缺的只是一个足够低的门槛。PartyKeys 用会发光的键盘 + AI,把「我不懂音乐」变成「我刚做了一首歌」。「光音成曲」是我在伯克利黑客松的新尝试:弹一个动机,AI 给它配一支完整乐队,灯光再带你把它弹回来。</p>
+    <div class="clinks">📮 <a href="mailto:bohanzhang@gse.harvard.edu">bohanzhang@gse.harvard.edu</a> &nbsp;·&nbsp; 🎹 <a href="https://game.partykeys.org" target="_blank" rel="noopener">game.partykeys.org</a></div>
   </div>
 </div>
 
@@ -544,6 +576,8 @@ const I18N={
     p2Title:"🎨 调一调你的歌", p2Desc:"点选风格、速度、乐器和人声，它们会自动写进下面的提示词。满意了就生成。",
     p3Title:"✨ 跟着光弹", p3Desc:"从人声扒出来的旋律单音从上往下落，背景音乐同步播放。音符到判定线、琴键亮起时跟着拍子弹——你弹的就是这首歌的主旋律。",
     clear:"清空", next:"下一步 →", back:"← 上一步", restart:"🔄 重来",
+    aboutCreator:"👤 关于创作者", aboutTitle:"👤 关于创作者", creatorName:"张博涵 · Bohan Zhang", creatorRole:"PartyKeys 视感科技 创始人 · Harvard GSE",
+    creatorBio:"我是 Bohan，PartyKeys（视感科技）创始人，就读于哈佛大学教育学院。我相信每个人都有创造音乐的天分，缺的只是一个足够低的门槛。PartyKeys 用会发光的键盘 + AI，把「我不懂音乐」变成「我刚做了一首歌」。「光音成曲」是我在伯克利黑客松的新尝试：弹一个动机，AI 给它配一支完整乐队，灯光再带你把它弹回来。",
     grpStyle:"风格", grpTempo:"速度", grpInst:"主要乐器（可多选）", grpVocal:"人声",
     promptLabel:"Suno 提示词（可手动修改）", promptPh:"先录一个动机…", lyricsLabel:"人声内容（啊啊啊，无歌词）",
     genBtn:"SUNO - Generate!", genIdle:"未开始",
@@ -593,6 +627,8 @@ const I18N={
     p2Title:"🎨 Tune your song", p2Desc:"Pick a style, tempo, instruments and vocals — they get written straight into the prompt below. Generate when happy.",
     p3Title:"✨ Play along", p3Desc:"The melody extracted from the vocal falls from the top while the background music plays in sync. Play each note in time as it reaches the line and its key lights up — you're playing the song's lead melody.",
     clear:"Clear", next:"Next →", back:"← Back", restart:"🔄 Restart",
+    aboutCreator:"👤 About the creator", aboutTitle:"👤 About the creator", creatorName:"Bohan Zhang · 张博涵", creatorRole:"Founder, PartyKeys · Harvard GSE",
+    creatorBio:"I'm Bohan, founder of PartyKeys and a student at the Harvard Graduate School of Education. I believe everyone is musical — they just need a low enough barrier to start. PartyKeys pairs a light-up keyboard with AI to turn \"I'm not musical\" into \"I just made a song.\" Shine Up, Notes On is my Berklee Hackathon take on that idea: play one motif, let AI give it a full band, and let the lights teach you to play it back.",
     grpStyle:"Style", grpTempo:"Tempo", grpInst:"Instruments (multi)", grpVocal:"Vocals",
     promptLabel:"Suno prompt (editable)", promptPh:"Record a motif first…", lyricsLabel:"Vocal content (wordless \"ah\")",
     genBtn:"SUNO - Generate!", genIdle:"Not started",
@@ -606,7 +642,7 @@ const I18N={
     proxyLegend:'Proxy mode: run the bundled <span class="mono">local-proxy.mjs</span> (<span class="mono">node local-proxy.mjs sk_live_yourkey</span>) or deploy <span class="mono">api/suno.js</span> to Vercel. The proxy hides your key + fixes CORS. On failure it falls back to the built-in backing.',
     kbLegend:"Computer keys: A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5",
     stepNames:["Motif","Tune","Stems","Play"],
-    psTitle:"🎚️ Split lead & backing", psDesc:"Separate the song you just made into a lead track and a backing track, each with its own mute button — mute one and it goes silent. Play-along uses the backing track so the wordless \"ah\" vocal won't fight your melody.",
+    psTitle:"🎚️ Split melody & background music", psDesc:"Separate the song you just made into a melody track and a background music track, each with its own mute button — mute one and it goes silent. Play-along uses the background music so the wordless \"ah\" vocal won't fight your melody.",
     stemVocal:"Melody", stemInst:"Background Music", stemMute:"Mute", stemDl:"Download this track", stemDlSong:"⬇️ Download song", stemLockHint:"needs a stem splitter", stemPlay:"▶️ Play together", stemPause:"⏸ Pause", stemRedo:"🔄 Re-split",
     stemIdle:"Generate a song first", stemNoSong:"Go back and generate a song first", stemDemo:"Demo mode skips splitting (uses full backing)",
     stemNeedWorkflow:"Set a music.ai workflow slug in Settings", stemNeedKey:"Direct mode needs a stem API key in Settings",
@@ -1623,6 +1659,9 @@ $("ledTestBtn").onclick=async()=>{
 /* ---------- 设置弹窗 ---------- */
 $("gearBtn").onclick=()=> $("settingsModal").classList.add("show");
 $("closeSettings").onclick=()=> $("settingsModal").classList.remove("show");
+$("aboutBtn").onclick=()=> $("aboutModal").classList.add("show");
+$("closeAbout").onclick=()=> $("aboutModal").classList.remove("show");
+$("aboutModal").onclick=(e)=>{ if(e.target===$("aboutModal")) $("aboutModal").classList.remove("show"); };
 $("settingsModal").addEventListener("click",e=>{ if(e.target.id==="settingsModal") $("settingsModal").classList.remove("show"); });
 
 /* ---------- 向导导航 ---------- */
