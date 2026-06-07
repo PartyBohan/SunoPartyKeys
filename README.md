@@ -1,21 +1,21 @@
-# 动机即歌 · Motif Song
+# Shine Up, Notes On
 
-> Suno × PartyKeys — 弹一个动机，AI 给它配一支完整乐队，灯光带你把它弹熟。
+> Suno × PartyKeys — play one motif, let AI give it a full band, and let the lights teach you to play it back.
 
-面向零基础初学者的网页 App：在 PartyKeys 36（或电脑键盘/屏幕钢琴）上弹一小段动机 → 自动识别调性/速度 → 调 Suno 生成一首带「啊啊啊」人声的歌 → PartyKeys 灯光带你跟弹，实时打分。教学旋律用的是你自己弹的 MIDI（零转录、零误差），Suno 只负责配伴奏。
+A browser app for absolute beginners: play a short motif on a PartyKeys 36 (or your computer keyboard / on-screen piano) → it auto-detects key and tempo → it calls Suno to generate a song with wordless "ah" vocals → the PartyKeys lights guide you to play along and score you in real time. The teaching melody is the MIDI you played yourself (zero transcription, zero error); Suno only fills in the backing band.
 
 ---
 
-## 目录结构
+## Project structure
 
 ```
-motif-song/
-├── index.html        # 整个 App（单文件，零外部依赖）
+shine-up-notes-on/
+├── index.html        # The whole app (single file, zero external dependencies)
 ├── api/
-│   ├── suno.js       # Vercel 代理：Suno 生成（藏 SUNO_KEY + 解决 CORS）
-│   └── stems.js      # Vercel 代理：music.ai 人声/伴奏分轨（藏 MUSICAI_KEY）
-├── local-proxy.mjs   # 本地开发代理（一个进程同时代理 Suno + music.ai，Node 18+）
-├── demucs-server.py  # 本地分轨服务（开源 Demucs，免费、无密钥，第 3 步可选后端）
+│   ├── suno.js       # Vercel proxy: Suno generation (hides SUNO_KEY + fixes CORS)
+│   └── stems.js      # Vercel proxy: music.ai vocal/accompaniment separation (hides MUSICAI_KEY)
+├── local-proxy.mjs   # Local dev proxy (one process proxies both Suno + music.ai, Node 18+)
+├── demucs-server.py  # Local separation service (open-source Demucs, free, no key, optional step-3 backend)
 ├── package.json
 ├── .env.example
 └── .gitignore
@@ -23,102 +23,102 @@ motif-song/
 
 ---
 
-## 部署到 Vercel（推荐）
+## Deploy to Vercel (recommended)
 
-1. 把这个文件夹推到一个新的 GitHub 仓库。
-2. 在 Vercel 新建项目，导入该仓库，**Root Directory 留空**（项目就在根目录）。零配置即可：`index.html` 作为静态页，`api/suno.js` 自动成为函数。
-3. 在 Vercel 项目 **Settings → Environment Variables** 加：
-   - `SUNO_KEY` = 你的 `sk_live_...` 密钥（从 platform.suno.com 获取）— 生成必填
-   - `MUSICAI_KEY` = 你的 music.ai key（可选）— 第 3 步「人声/伴奏分轨」要用，不填则跳过分轨
-4. 部署。打开站点后，App 会自动把请求地址设成同源的 `/api/suno`（分轨自动改用 `/api/stems`），无需手动改。
+1. Push this folder to a new GitHub repo.
+2. Create a project on Vercel, import the repo, and **leave Root Directory empty** (the project lives at the root). Zero config: `index.html` is served as a static page and `api/suno.js` automatically becomes a function.
+3. In the Vercel project, go to **Settings → Environment Variables** and add:
+   - `SUNO_KEY` = your `sk_live_...` key (from platform.suno.com) — required for generation
+   - `MUSICAI_KEY` = your music.ai key (optional) — needed for the step-3 vocal/accompaniment separation; if omitted, separation is skipped
+4. Deploy. Once the site is open, the app automatically points requests to the same-origin `/api/suno` (and separation to `/api/stems`) — no manual changes needed.
 
-> 密钥只存在 Vercel 环境变量里，永远不会进入浏览器。
+> Keys live only in Vercel environment variables and never reach the browser.
 
 ---
 
-## 本地开发
+## Local development
 
-不联网也能玩（内置伴奏演示）：直接双击 `index.html` 即可，连接方式会自动设为「内置伴奏演示」。
+You can play offline (with the built-in backing demo): just double-click `index.html` and the connection mode is automatically set to "built-in backing demo".
 
-要本地真打通 Suno：
+To actually wire up Suno locally:
 
 ```bash
-# Node 18+（自带 fetch）
-node local-proxy.mjs sk_live_你的key
-# 代理跑在 http://localhost:8787
+# Node 18+ (built-in fetch)
+node local-proxy.mjs sk_live_your_key
+# Proxy runs at http://localhost:8787
 ```
 
-然后用本地服务器打开页面（避免 file:// 的限制），例如：
+Then open the page through a local server (to avoid `file://` restrictions), e.g.:
 
 ```bash
-npx serve .        # 或任何静态服务器，访问 http://localhost:3000
+npx serve .        # or any static server, visit http://localhost:3000
 ```
 
-页面在 localhost 下会自动把请求地址设为 `http://localhost:8787`、连接方式设为「通过代理」。
+On localhost the page automatically sets the request URL to `http://localhost:8787` and the connection mode to "via proxy".
 
 ---
 
-## PartyKeys 灯光
+## PartyKeys lights
 
-App 内置两套灯光协议，设置区有「💡 测试灯光」按钮：
+The app ships with two lighting protocols; there's a "💡 Test lights" button in the settings area:
 
-- **Classic CMD 0x71**（默认）— 颜色 ID + 真实 MIDI 音符号，与现役游戏一致，最稳。
-- **RGB CMD 0x15** — 24-bit RGB + 键索引（protocol.partykeys.org 新协议）。
+- **Classic CMD 0x71** (default) — color ID + real MIDI note number, matches the current games, most reliable.
+- **RGB CMD 0x15** — 24-bit RGB + key index (the newer protocol.partykeys.org protocol).
 
-连上 PartyKeys 点「测试灯光」，没亮就切到另一套再点，即可锁定你固件支持的协议。
-浏览器需 Chrome / Edge（Web MIDI + SysEx）。注意硬件 LED 延迟约 200ms。
-
----
-
-## Suno API 速查（Berklee Hackathon）
-
-- Base：`https://api.suno.com/`，鉴权 `Authorization: Bearer sk_live_...`
-- 生成 `POST /v0/audio`：Simple(`description`) / Custom(`lyrics`+`style`，`instrumental:true` 出纯伴奏)
-- 翻唱 `POST /v0/audio/{id}/covers`、混搭 `POST /v0/audio/{id}/mashups`
-- 轮询 `GET /v0/audio/{id}` 直到 `status:"complete"`，取 `audio_url`
-- 用量 `GET /v0/account/usage`；限速 10 req/s
-- ❌ 官方 API 无音频上传、无分轨、无自定义嗓音克隆（用 3 个预设 voice_id）
+Connect a PartyKeys, hit "Test lights"; if nothing lights up, switch to the other protocol and try again to lock in the one your firmware supports.
+Requires Chrome / Edge (Web MIDI + SysEx). Note the hardware LED latency is about 200ms.
 
 ---
 
-## 人声/伴奏分轨（第 3 步）
+## Suno API cheat sheet (Berklee Hackathon)
 
-官方 Suno 返回的是混好的单条音频、自己没有分轨。第 3 步把那条 `audio_url` 拆成对齐的人声 + 伴奏两轨，显示成两条独立轨道条（各带静音键）。设置里「分轨后端」可二选一，两者用同一套 job 协议（`POST /job` → 轮询 `GET /job/{id}` → `result.vocals` / `result.accompaniments`）：
+- Base: `https://api.suno.com/`, auth `Authorization: Bearer sk_live_...`
+- Generate `POST /v0/audio`: Simple (`description`) / Custom (`lyrics` + `style`, `instrumental:true` for a pure backing track)
+- Cover `POST /v0/audio/{id}/covers`, mashup `POST /v0/audio/{id}/mashups`
+- Poll `GET /v0/audio/{id}` until `status:"complete"`, then read `audio_url`
+- Usage `GET /v0/account/usage`; rate limit 10 req/s
+- ❌ The official API has no audio upload, no stem separation, and no custom voice cloning (use the 3 preset `voice_id`s)
 
-### A) Demucs 本地（开源 · 免费 · 黑客松首选）
+---
 
-随附的 `demucs-server.py` 在你自己机器上跑 Facebook 的 [Demucs](https://github.com/facebookresearch/demucs)，把整曲拆成人声 + 伴奏。纯本地、不联外部 API、无密钥。
+## Vocal / accompaniment separation (step 3)
 
-**用 Python 3.11 的虚拟环境装**（demucs 依赖 PyTorch；Python 3.13/3.14 太新还没 torch 轮子，会装不上）：
+The official Suno response is a single mixed audio track with no stems of its own. Step 3 splits that `audio_url` into an aligned vocal + accompaniment pair, shown as two independent track strips (each with a mute button). In settings you can pick one of two "separation backends"; both use the same job protocol (`POST /job` → poll `GET /job/{id}` → `result.vocals` / `result.accompaniments`):
+
+### A) Demucs local (open-source · free · hackathon pick)
+
+The bundled `demucs-server.py` runs Facebook's [Demucs](https://github.com/facebookresearch/demucs) on your own machine, splitting the full track into vocals + accompaniment. Fully local, no external API, no key.
+
+**Install in a Python 3.11 virtual environment** (demucs depends on PyTorch; Python 3.13/3.14 are too new and have no torch wheels yet, so install will fail):
 
 ```bash
-brew install ffmpeg python@3.11        # demucs 读写 mp3 需要 ffmpeg
-python3.11 -m venv .venv               # 在项目里建独立环境
+brew install ffmpeg python@3.11        # demucs needs ffmpeg to read/write mp3
+python3.11 -m venv .venv               # create an isolated env in the project
 .venv/bin/python -m pip install -U demucs "numpy<2" certifi
-.venv/bin/python demucs-server.py      # 默认 http://localhost:8788
+.venv/bin/python demucs-server.py      # defaults to http://localhost:8788
 ```
 
-注意三个本机坑（脚本/上面命令已处理好）：
-- `numpy<2`：torch 2.2.x 不兼容 numpy 2.x，否则 demucs 报 `Numpy is not available`。
-- `certifi`：macOS 的 Homebrew Python 缺 CA 根证书，否则下载 Suno 音频 / demucs 下模型会 `CERTIFICATE_VERIFY_FAILED`（`demucs-server.py` 会用 certifi 的证书包并设 `SSL_CERT_FILE`）。
-- 用 venv 的 `python`（不是裸 `python3`）来启动服务，保证 demucs 装在哪就用哪。
+Watch out for three local gotchas (already handled by the script / commands above):
+- `numpy<2`: torch 2.2.x is incompatible with numpy 2.x, otherwise demucs throws `Numpy is not available`.
+- `certifi`: macOS Homebrew Python lacks CA root certs, otherwise downloading Suno audio / demucs models throws `CERTIFICATE_VERIFY_FAILED` (`demucs-server.py` uses certifi's cert bundle and sets `SSL_CERT_FILE`).
+- Use the venv's `python` (not a bare `python3`) to start the service, so demucs runs from where it was installed.
 
-App 设置里 **分轨后端 = Demucs 本地**（localhost 打开时已默认选中），地址保持 `http://localhost:8788`。首跑会下 htdemucs 模型（约 84MB，缓存到 `~/.cache/torch`，之后免下）；CPU 上一首歌约 1 分钟。**只在本机能用**（线上 game.partykeys.org 不行——模型太重，跑不动浏览器/Vercel）。没起服务则降级用整首伴奏。
+In app settings, set **Separation backend = Demucs local** (already selected by default when opened on localhost), and keep the address `http://localhost:8788`. The first run downloads the htdemucs model (~84MB, cached to `~/.cache/torch`, no download afterward); about 1 minute per song on CPU. **Local machine only** (won't work on the hosted site — the model is too heavy for the browser / Vercel). If the service isn't running, it gracefully falls back to the full backing track.
 
-### B) music.ai（云端 · 线上可用）
+### B) music.ai (cloud · works on the hosted site)
 
-把 `audio_url` 交给 **music.ai**（接受音频 URL、可轮询）：
+Hand the `audio_url` to **music.ai** (it accepts an audio URL and can be polled):
 
-- Base：`https://api.music.ai/v1`，鉴权 `Authorization: <裸 key>`（**不是** `Bearer`）
-- 建任务 `POST /job`：`{ name, workflow:"<slug>", params:{ inputUrl } }` —— `workflow` slug 在 music.ai 后台建一个人声/伴奏分离 workflow 后获得
-- 轮询 `GET /job/{id}` 直到 `status:"SUCCEEDED"`，从 `result` 取 `vocals` / `accompaniments`（前端对常见字段名做了兼容）
-- 异步约 30–60 秒；返回的音频 URL 有效期 14 天
-- 配置：Vercel 设 `MUSICAI_KEY` 环境变量（部署 `api/stems.js`），App 设置里填 workflow slug。**没配 / demo 模式则跳过分轨，跟弹自动用整首伴奏。**
+- Base: `https://api.music.ai/v1`, auth `Authorization: <raw key>` (**not** `Bearer`)
+- Create a job `POST /job`: `{ name, workflow:"<slug>", params:{ inputUrl } }` — get the `workflow` slug by creating a vocal/accompaniment separation workflow in the music.ai dashboard
+- Poll `GET /job/{id}` until `status:"SUCCEEDED"`, then read `vocals` / `accompaniments` from `result` (the frontend tolerates common field-name variants)
+- Async, about 30–60 seconds; the returned audio URLs are valid for 14 days
+- Config: set the `MUSICAI_KEY` environment variable on Vercel (deploys `api/stems.js`), and enter the workflow slug in app settings. **If unset / in demo mode, separation is skipped and play-along uses the full backing track automatically.**
 
 ---
 
-## 已知边界
+## Known boundaries
 
-- Suno 不保留你弹的旋律，只按调性/情绪配伴奏；旋律由灯光忠实回放。
-- 教学旋律始终是你自己弹的动机（零转录误差）；分轨只用于把伴奏单独拿出来跟弹、不打架。
-- 生成异步约几十秒~1 分钟；分轨（可选）再约 30–60 秒，未配置则自动跳过。
+- Suno doesn't keep the melody you played; it only arranges a backing track to match the key/mood — the melody is faithfully replayed by the lights.
+- The teaching melody is always the motif you played yourself (zero transcription error); separation is only used to pull the accompaniment out so it doesn't clash with your play-along.
+- Generation is async, roughly tens of seconds to ~1 minute; separation (optional) adds about 30–60 seconds, and is skipped automatically when not configured.
