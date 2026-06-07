@@ -297,6 +297,7 @@
             <span class="lockhint" data-i18n="stemLockHint">需 music.ai 分轨</span>
             <canvas class="wave"></canvas>
             <span class="stembtns">
+              <button class="btn-ghost stem-dl" data-i18n-title="stemDl" style="display:none">⬇️</button>
               <button class="btn-ghost stem-mute" data-i18n-title="stemMute">🔊</button>
             </span>
           </div>
@@ -305,12 +306,14 @@
             <span class="lockhint" data-i18n="stemLockHint">需 music.ai 分轨</span>
             <canvas class="wave"></canvas>
             <span class="stembtns">
+              <button class="btn-ghost stem-dl" data-i18n-title="stemDl" style="display:none">⬇️</button>
               <button class="btn-ghost stem-mute" data-i18n-title="stemMute">🔊</button>
             </span>
           </div>
         </div>
         <div class="row" style="justify-content:center;margin-top:14px">
           <button class="btn-primary" id="stemPlay" data-i18n="stemPlay">▶️ 一起播放</button>
+          <button class="btn-ghost" id="stemDlSong" data-i18n="stemDlSong" style="display:none">⬇️ 下载原曲</button>
           <button class="btn-ghost" id="stemRedo" data-i18n="stemRedo">🔄 重新分轨</button>
           <span class="pill" id="stemStatus" data-i18n="stemIdle">待生成歌曲</span>
         </div>
@@ -555,7 +558,7 @@ const I18N={
     kbLegend:"电脑键盘：A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5",
     stepNames:["弹动机","调歌","分轨","跟弹"],
     psTitle:"🎚️ 拆开人声和伴奏", psDesc:"把刚生成的这首歌拆成「主音」和「伴奏」两轨，各自有静音键——静音哪个哪个就不出声。跟弹时用伴奏轨，啊啊啊人声不会跟你抢旋律。",
-    stemVocal:"旋律", stemInst:"背景音乐", stemMute:"静音", stemLockHint:"需分轨服务", stemPlay:"▶️ 一起播放", stemPause:"⏸ 暂停", stemRedo:"🔄 重新分轨",
+    stemVocal:"旋律", stemInst:"背景音乐", stemMute:"静音", stemDl:"下载这条音轨", stemDlSong:"⬇️ 下载原曲", stemLockHint:"需分轨服务", stemPlay:"▶️ 一起播放", stemPause:"⏸ 暂停", stemRedo:"🔄 重新分轨",
     stemIdle:"待生成歌曲", stemNoSong:"先回上一步生成一首歌", stemDemo:"演示模式不分轨（用整首伴奏）",
     stemNeedWorkflow:"请在设置里填 music.ai 的 workflow slug", stemNeedKey:"直连需在设置里填分轨 API Key",
     stemSeparating:"分轨中…（约 30–60 秒）", stemPhaseSubmit:"提交分轨任务…", stemPhaseRun:s=>`分轨处理中…（${s}）`, stemPhaseDone:"完成 ✓",
@@ -604,7 +607,7 @@ const I18N={
     kbLegend:"Computer keys: A=C4 W=C#4 S=D4 E=D#4 D=E4 F=F4 T=F#4 G=G4 Y=G#4 H=A4 U=A#4 J=B4 K=C5",
     stepNames:["Motif","Tune","Stems","Play"],
     psTitle:"🎚️ Split lead & backing", psDesc:"Separate the song you just made into a lead track and a backing track, each with its own mute button — mute one and it goes silent. Play-along uses the backing track so the wordless \"ah\" vocal won't fight your melody.",
-    stemVocal:"Melody", stemInst:"Background Music", stemMute:"Mute", stemLockHint:"needs a stem splitter", stemPlay:"▶️ Play together", stemPause:"⏸ Pause", stemRedo:"🔄 Re-split",
+    stemVocal:"Melody", stemInst:"Background Music", stemMute:"Mute", stemDl:"Download this track", stemDlSong:"⬇️ Download song", stemLockHint:"needs a stem splitter", stemPlay:"▶️ Play together", stemPause:"⏸ Pause", stemRedo:"🔄 Re-split",
     stemIdle:"Generate a song first", stemNoSong:"Go back and generate a song first", stemDemo:"Demo mode skips splitting (uses full backing)",
     stemNeedWorkflow:"Set a music.ai workflow slug in Settings", stemNeedKey:"Direct mode needs a stem API key in Settings",
     stemSeparating:"Splitting… (~30–60s)", stemPhaseSubmit:"Submitting split job…", stemPhaseRun:s=>`Splitting… (${s})`, stemPhaseDone:"Done ✓",
@@ -1014,6 +1017,7 @@ function currentSongUrl(){ const p=player(); const s=p&&p.src||""; return (s && 
 
 async function enterStemPage(){
   const url=currentSongUrl(), mode=$("connMode").value, backend=$("stemBackend").value;
+  syncSongDownload();
   if(stems.done && stems.src===url && url){ showStemMix(true); setStem(t("stemDone"),"ok"); return; }
   if(mode==="demo"){ stems={src:"",vocal:"",inst:"",done:false,busy:false}; showStemMix(false); setStem(t("stemDemo"),"warn"); return; }
   if(!url){ stems={src:"",vocal:"",inst:"",done:false,busy:false}; showStemMix(false); setStem(t("stemNoSong"),"warn"); return; }
@@ -1100,12 +1104,30 @@ function updateStemCards(){
     card.classList.toggle("muted", locked || a.muted || !has);
     card.classList.toggle("playing", stemPlaying && !a.muted && has && !locked);
     const mb=card.querySelector(".stem-mute"); if(mb) mb.textContent = locked ? "🔒" : (a.muted ? "🔇" : "🔊");
+    const db=card.querySelector(".stem-dl"); if(db) db.style.display = (has && !locked) ? "" : "none";
   });
 }
+// CORS 安全下载：先 fetch 成 blob 再触发下载；跨域被拦则退化为新标签打开。
+async function downloadAudio(url, filename){
+  if(!url) return;
+  try{
+    const r=await fetch(url,{mode:"cors"}); if(!r.ok) throw 0;
+    const b=await r.blob(), u=URL.createObjectURL(b), a=document.createElement("a");
+    a.href=u; a.download=filename||"audio.mp3"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(u),4000);
+  }catch(_){ window.open(url,"_blank","noopener"); }
+}
+function syncSongDownload(){ const u=currentSongUrl(); $("stemDlSong").style.display = u ? "" : "none"; }
 document.querySelectorAll('#stemMix .stem-mute').forEach(btn=>{
   btn.onclick=()=>{ const card=btn.closest('.stemcard'); if(card.classList.contains("locked")) return;
     const a=card.dataset.stem==="vocal"?$("aVocal"):$("aInst"); a.muted=!a.muted; updateStemCards(); };
 });
+document.querySelectorAll('#stemMix .stem-dl').forEach(btn=>{
+  btn.onclick=()=>{ const card=btn.closest('.stemcard'); if(card.classList.contains("locked")) return;
+    const isV=card.dataset.stem==="vocal";
+    downloadAudio(isV?stems.vocal:stems.inst, isV?"shine-up-vocals.mp3":"shine-up-backing.mp3"); };
+});
+$("stemDlSong").onclick=()=>downloadAudio(currentSongUrl(), "shine-up-song.mp3");
 $("stemPlay").onclick=stemPlayToggle;
 $("stemRedo").onclick=()=>{ const url=currentSongUrl(), mode=$("connMode").value, backend=$("stemBackend").value;
   const okMusicai = backend==="demucs" || backend==="replicate" || ($("stemWorkflow").value.trim() && !(mode==="direct"&&!$("stemKey").value.trim()));
