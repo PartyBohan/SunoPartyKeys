@@ -180,6 +180,27 @@
   .celesub{font:700 19px -apple-system,sans-serif;color:#fff;opacity:.94;text-shadow:0 0 10px rgba(0,0,0,.5);animation:celepop .6s .14s both}
   @keyframes celepop{from{transform:scale(.4) translateY(22px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
 
+  /* 五线谱视图 */
+  #wfStaff{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:none}
+  #wfField.staffview #wfStaff{display:block}
+  #wfField.staffview #wfNotes{display:none}
+  #wfField.staffview #wfLine{display:none}
+  .stf-line{stroke:rgba(255,255,255,.30);stroke-width:1.4}
+  .stf-ledger{stroke:rgba(255,255,255,.55);stroke-width:1.6}
+  .stf-clef{fill:rgba(255,255,255,.82)}
+  .stf-play{stroke:#a64bff;stroke-width:3;filter:drop-shadow(0 0 9px rgba(166,75,255,.75))}
+  .stf-head{stroke:rgba(0,0,0,.35);stroke-width:1;transition:fill .15s}
+  .stf-stem{stroke:rgba(255,255,255,.62);stroke-width:1.7}
+  .stf-acc{fill:#fff}
+  .stf-lbl{fill:rgba(255,255,255,.62);font:600 9px -apple-system,sans-serif;text-anchor:middle}
+  .stf-note.active .stf-head{filter:drop-shadow(0 0 9px #a64bff)}
+  .stf-note.active .stf-lbl{fill:#fff}
+  .stf-note.wait .stf-head{filter:drop-shadow(0 0 12px #fff);animation:stfpulse .6s infinite alternate}
+  @keyframes stfpulse{to{opacity:.45}}
+  .stf-note.hit{opacity:.5;transition:opacity .25s}
+  .stf-note.hit .stf-head{fill:#36d07a;stroke:#36d07a}
+  .stf-note.miss .stf-head{fill:#ff5b6e;stroke:#ff5b6e}
+
   .notewall{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 4px;min-height:30px;justify-content:center}
   .nchip{font-size:12px;padding:5px 11px;border-radius:9999px;background:linear-gradient(120deg,#4f8cff33,#a64bff33);
     color:#fff;font-weight:700;box-shadow:inset 0 0 0 1px #a64bff44;animation:pop .25s ease}
@@ -381,11 +402,16 @@
             <button class="wfmode-btn active" data-mode="follow" data-i18n="modeFollow">跟弹</button>
             <button class="wfmode-btn" data-mode="flow" data-i18n="modeFlow">连弹</button>
           </div>
+          <div class="wfmode" id="wfView">
+            <button class="wfmode-btn active" data-view="waterfall" data-i18n="viewWaterfall">🌊 瀑布</button>
+            <button class="wfmode-btn" data-view="staff" data-i18n="viewStaff">🎼 五线谱</button>
+          </div>
         </div>
         <div class="wfhint" id="wfHint" style="display:none"></div>
         <div class="pianowrap" id="playfield3">
           <div id="wfField">
             <div id="wfNotes"></div>
+            <svg id="wfStaff" xmlns="http://www.w3.org/2000/svg"></svg>
             <div id="wfBurst"></div>
             <div id="wfLine"></div>
             <div id="wfCelebrate" class="wfcele hidden">
@@ -703,7 +729,7 @@ const I18N={
     genPreview:"可试听（生成中）", genDone:"完成 ✓", genTimeout:"超时/失败 → 内置伴奏", genFail:m=>`失败(${m}) → 内置伴奏`,
     wfHint:"跟弹模式：弹对当前的音才会继续", wfReady:"灯亮就弹那个键，弹对了才会往下走 🎶", wfConverting:"正在把人声转成音符…",
     wfWait:"轮到你了——弹亮起来的那个键 ✨",
-    modeFollow:"跟弹", modeFlow:"连弹", wfFlowReady:"跟着背景音乐，灯亮就弹 🎶",
+    modeFollow:"跟弹", modeFlow:"连弹", viewWaterfall:"🌊 瀑布", viewStaff:"🎼 五线谱", wfFlowReady:"跟着背景音乐，灯亮就弹 🎶",
     scoreGreat:"🎉 太棒了！整首拿下！", scoreGood:"👍 不错，再练练就更顺", scoreTry:"💪 多练几次会更好",
     celebrate:"Congratulations!", celeAcc:(acc,combo)=>`准确率 ${acc}% · 最高连击 ${combo}`,
     ledSwitched:m=>`已切到 ${m} 协议`, ledNoOut:"没有 MIDI 输出设备（连上 PartyKeys 再试）",
@@ -773,7 +799,7 @@ const I18N={
     genPreview:"Preview ready (generating)", genDone:"Done ✓", genTimeout:"Timeout/fail → built-in backing", genFail:m=>`Failed (${m}) → built-in backing`,
     wfHint:"Follow mode: play the right note to move on", wfReady:"Play the lit key — it waits until you get it right 🎶", wfConverting:"Converting the vocal into notes…",
     wfWait:"Your turn — play the lit key ✨",
-    modeFollow:"Follow", modeFlow:"Flow", wfFlowReady:"Play in time with the music — light shows the key 🎶",
+    modeFollow:"Follow", modeFlow:"Flow", viewWaterfall:"🌊 Waterfall", viewStaff:"🎼 Staff", wfFlowReady:"Play in time with the music — light shows the key 🎶",
     scoreGreat:"🎉 Awesome — you nailed it!", scoreGood:"👍 Nice, a bit more practice", scoreTry:"💪 Keep practicing, you'll get it",
     celebrate:"Congratulations!", celeAcc:(acc,combo)=>`Accuracy ${acc}% · best combo ${combo}`,
     ledSwitched:m=>`Switched to ${m} protocol`, ledNoOut:"No MIDI output device (connect PartyKeys and retry)",
@@ -1412,6 +1438,7 @@ function stopOrb(){ if(orbRAF){ cancelAnimationFrame(orbRAF); orbRAF=null; } bur
 const wf={active:false, mode:"follow", notes:[], lit:new Set(), litStrong:{}, hits:0, combo:0, maxCombo:0, wrong:0, timer:null,
           t0:0, dur:0, holdY:0, fieldH:240, keyX:{}, col:{}, lead:2.4, hitWin:0.34, preLight:0.3,
           paused:false, pauseAccum:0, pauseStart:0, waitEl:null, fwTimer:null, finished:false,
+          view:"waterfall", raf:null, sWaitEl:null, _activeEl:null, _activeS:null,
           _ledKey:null, _hint:""};
 const WF_BOX=58;
 
@@ -1543,6 +1570,82 @@ function buildWfNotes(){
     host.appendChild(d); n.el=d;
   }
 }
+
+/* ===== 五线谱视图：同一套 wf.notes + wfClock，横向滚动 + 固定播放头 ===== */
+const STF_NS="http://www.w3.org/2000/svg";
+const STF_DEG=[0,0,1,1,2,3,3,4,4,5,5,6];     // 音级 pc → 自然音阶级数(C..B)
+const STF_SHARP=[0,1,0,1,0,0,1,0,1,0,1,0];   // pc 是否带升号
+const STF_TOP=42, STF_BOT=16;                // 绘制的级数范围(B5 在 41, C3 在 21)
+function staffStep(m){ const pc=((m%12)+12)%12; return (Math.floor(m/12)-1)*7 + STF_DEG[pc]; }
+function staffSharp(m){ return !!STF_SHARP[((m%12)+12)%12]; }
+function yOfStep(s){ return wf.sTop + (STF_TOP - s)*wf.sStepPx; }
+function layoutStaff(){
+  const r=$("wfField").getBoundingClientRect();
+  const W=r.width, H=r.height, pad=Math.max(14,H*0.07);
+  wf.sW=W; wf.sH=H; wf.sTop=pad; wf.sStepPx=(H-2*pad)/(STF_TOP-STF_BOT);
+  wf.sPlayX=Math.max(94, W*0.20);
+  wf.sPxs=(W-wf.sPlayX-30)/wf.lead;
+  drawStaffStatic();
+}
+function drawStaffStatic(){
+  const svg=$("wfStaff"); if(!svg) return; const W=wf.sW, H=wf.sH;
+  svg.setAttribute("width",W); svg.setAttribute("height",H); svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  const ls=wf.sStepPx*2;          // 行距(相邻谱线)
+  let s="";
+  for(const st of [30,32,34,36,38, 18,20,22,24,26]){    // 高音5线 + 低音5线
+    const y=yOfStep(st).toFixed(1);
+    s+=`<line class="stf-line" x1="8" y1="${y}" x2="${(W-8).toFixed(1)}" y2="${y}"/>`;
+  }
+  // 谱号(macOS 字体可渲染 𝄞 𝄢)
+  s+=`<text class="stf-clef" x="14" y="${(yOfStep(31)+ls*1.0).toFixed(1)}" font-size="${(ls*3.6).toFixed(0)}">𝄞</text>`;
+  s+=`<text class="stf-clef" x="16" y="${(yOfStep(25)+ls*0.7).toFixed(1)}" font-size="${(ls*2.6).toFixed(0)}">𝄢</text>`;
+  s+=`<line class="stf-play" x1="${wf.sPlayX.toFixed(1)}" y1="6" x2="${wf.sPlayX.toFixed(1)}" y2="${(H-6).toFixed(1)}"/>`;
+  svg.innerHTML=`<g>${s}</g><g id="stfNotes"></g>`;
+}
+function buildStaffNotes(){
+  const g=$("wfStaff")&&$("wfStaff").querySelector("#stfNotes"); if(!g) return; g.innerHTML="";
+  const rx=wf.sStepPx*1.25, ry=wf.sStepPx*0.95, stem=wf.sStepPx*6.5;
+  for(const n of wf.notes){
+    const st=staffStep(n.note), x=(n.t*wf.sPxs).toFixed(1), c=wf.col[n.note]||"166,75,255";
+    let inner="";
+    // 加线(中央 C=28 / 高音上方 ≥40)
+    const led=[]; if(st>=40) for(let L=40;L<=st;L+=2) led.push(L); if(st===28) led.push(28); if(st<=16) for(let L=16;L>=st;L-=2) led.push(L);
+    for(const L of led){ const dy=(yOfStep(L)-yOfStep(st)).toFixed(1); inner+=`<line class="stf-ledger" x1="${(-rx*1.7).toFixed(1)}" y1="${dy}" x2="${(rx*1.7).toFixed(1)}" y2="${dy}"/>`; }
+    const up = st<34;
+    inner += up
+      ? `<line class="stf-stem" x1="${(rx*0.92).toFixed(1)}" y1="0" x2="${(rx*0.92).toFixed(1)}" y2="${(-stem).toFixed(1)}"/>`
+      : `<line class="stf-stem" x1="${(-rx*0.92).toFixed(1)}" y1="0" x2="${(-rx*0.92).toFixed(1)}" y2="${stem.toFixed(1)}"/>`;
+    if(staffSharp(n.note)) inner+=`<text class="stf-acc" x="${(-rx*2.3).toFixed(1)}" y="${(ry*0.6).toFixed(1)}" font-size="${(wf.sStepPx*2.6).toFixed(0)}">♯</text>`;
+    inner+=`<ellipse class="stf-head" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="rgb(${c})"/>`;
+    inner+=`<text class="stf-lbl" x="0" y="${(ry+wf.sStepPx*2.1).toFixed(1)}">${noteName(n.note)}</text>`;
+    const el=document.createElementNS(STF_NS,"g");
+    el.setAttribute("class","stf-note"); el.setAttribute("transform",`translate(${x},${yOfStep(st).toFixed(1)})`);
+    el.innerHTML=inner; g.appendChild(el); n.sEl=el;
+  }
+}
+function reapplyStaffStates(){
+  for(const n of wf.notes){ if(!n.sEl) continue;
+    n.sEl.classList.toggle("hit", !!n.hit); n.sEl.classList.toggle("miss", !!n.missed); }
+  if(wf.paused){ const req=nextReqNote(); if(req&&req.sEl){ req.sEl.classList.add("wait"); wf.sWaitEl=req.sEl; } }
+}
+function staffFrame(){
+  if(!(curPage===3 && wf.view==="staff" && (wf.active||wf.finished))){ wf.raf=null; return; }
+  const now = wf.finished ? wf.dur : wfClock();
+  const g=$("wfStaff")&&$("wfStaff").querySelector("#stfNotes");
+  if(g) g.setAttribute("transform",`translate(${(wf.sPlayX-now*wf.sPxs).toFixed(1)},0)`);
+  const req=nextReqNote(), as=req?req.note+"@"+req.t.toFixed(3):null;
+  if(as!==wf._activeS){
+    if(wf._activeEl) wf._activeEl.classList.remove("active");
+    wf._activeS=as; wf._activeEl=req?req.sEl:null;
+    if(wf._activeEl) wf._activeEl.classList.add("active");
+  }
+  wf.raf=requestAnimationFrame(staffFrame);
+}
+function startStaffRAF(){ if(!wf.raf) wf.raf=requestAnimationFrame(staffFrame); }
+function stopStaffRAF(){
+  if(wf.raf){ cancelAnimationFrame(wf.raf); wf.raf=null; }
+  if(wf._activeEl){ wf._activeEl.classList.remove("active"); wf._activeEl=null; } wf._activeS=null;
+}
 function wfClock(){
   let p=wf.pauseAccum;
   if(wf.paused) p+=performance.now()/1000 - wf.pauseStart;
@@ -1555,6 +1658,7 @@ function wfPause(req){
   $("wfField").classList.add("paused");
   try{$("aInst").pause();}catch(_){}
   if(req&&req.el){ wf.waitEl=req.el; req.el.classList.add("wait"); }
+  if(req&&req.sEl){ wf.sWaitEl=req.sEl; req.sEl.classList.add("wait"); }
   $("wfHint").textContent=t("wfWait");
 }
 function wfResume(){
@@ -1563,6 +1667,7 @@ function wfResume(){
   wf.paused=false;
   $("wfField").classList.remove("paused");
   if(wf.waitEl){ wf.waitEl.classList.remove("wait"); wf.waitEl=null; }
+  if(wf.sWaitEl){ wf.sWaitEl.classList.remove("wait"); wf.sWaitEl=null; }
   $("wfHint").textContent=wf._hint;
   const inst=$("aInst");
   if(!wf.finished && inst.src && !inst.src.endsWith(location.pathname)) inst.play().catch(()=>{});
@@ -1583,7 +1688,7 @@ async function wfStart(){
   if(curPage!==3) return;        // 转换期间用户已离开
   if(!notes) notes=motifFallbackNotes();
   notes=thinNotes(notes,0.24);   // 间隔太近的相邻音只保留一个，别让用户仓促连弹
-  wf.notes=notes.map(n=>({note:n.note,t:n.t,dur:n.dur,hit:false,missed:false,el:null}));
+  wf.notes=notes.map(n=>({note:n.note,t:n.t,dur:n.dur,hit:false,missed:false,el:null,sEl:null}));
   const last=wf.notes[wf.notes.length-1]; wf.dur=last?last.t+last.dur:0;
   $("progN").textContent="0/"+wf.notes.length;
   const hint=wf.mode==="follow"?t("wfReady"):t("wfFlowReady");
@@ -1597,6 +1702,9 @@ async function wfStart(){
   }
   wf.t0=performance.now()/1000;
   buildWfNotes();              // CSS 动画从此刻起算，与 wfClock 同源
+  $("wfField").classList.toggle("staffview", wf.view==="staff");
+  layoutStaff(); buildStaffNotes();   // 同一套 wf.notes，五线谱视图随时可切
+  if(wf.view==="staff") startStaffRAF();
   wf.active=true;
   wf.timer=setInterval(wfTick,30);   // 只做灯光/判定记账，不绘制
 }
@@ -1606,8 +1714,9 @@ function wfStop(){
   if(wf.liveTimer){ clearTimeout(wf.liveTimer); wf.liveTimer=null; }
   try{$("aInst").pause();}catch(_){}
   for(const m of wf.lit) litOff(m); wf.lit.clear(); wf.litStrong={}; ledAllOff(); wf._ledKey=null;
-  wf.waitEl=null; $("wfField").classList.remove("paused"); $("wfCelebrate").classList.add("hidden");
+  wf.waitEl=null; wf.sWaitEl=null; $("wfField").classList.remove("paused"); $("wfCelebrate").classList.add("hidden");
   const h=$("wfNotes"); if(h) h.innerHTML="";
+  stopStaffRAF(); const sg=$("wfStaff")&&$("wfStaff").querySelector("#stfNotes"); if(sg) sg.innerHTML="";
 }
 // 跟弹模式记账循环（无绘制）：预亮灯光 + 到判定线没弹对就暂停等待 + 收尾。
 function wfTick(){
@@ -1619,7 +1728,7 @@ function wfTick(){
     // 连弹：不暂停，过判定窗仍没弹中就记为漏弹并淡出，背景音乐持续。
     for(const n of wf.notes){
       if(!n.hit && !n.missed && now>n.t+wf.hitWin){
-        n.missed=true; if(n.el) n.el.classList.add("miss");
+        n.missed=true; if(n.el) n.el.classList.add("miss"); if(n.sEl) n.sEl.classList.add("miss");
         wf.wrong++; wf.combo=0; $("comboN").textContent="0";
       }
     }
@@ -1681,6 +1790,7 @@ function wfFirework(x,y){
 }
 function markHit(n,m){
   n.hit=true; if(n.el){ n.el.classList.remove("wait"); n.el.classList.add("hit"); }
+  if(n.sEl){ n.sEl.classList.remove("wait"); n.sEl.classList.add("hit"); }
   wf.hits++; wf.combo++; if(wf.combo>wf.maxCombo) wf.maxCombo=wf.combo;
   const x=wf.keyX[m]!=null?wf.keyX[m]:0; wfBurst(x,wf.holdY,m);
   litOff(m); wf.lit.delete(m); delete wf.litStrong[m]; wf._ledKey=null;
@@ -1711,7 +1821,7 @@ function wfHit(m){
     if(wf.paused){
       const nx=nextReqNote();
       if(!nx || nx.t>wfClock()+0.001) wfResume();      // 下一个音还没到线才恢复；否则继续等它
-      else { if(nx.el) nx.el.classList.add("wait"); wf.waitEl=nx.el; }
+      else { if(nx.el) nx.el.classList.add("wait"); wf.waitEl=nx.el; if(nx.sEl){ nx.sEl.classList.add("wait"); wf.sWaitEl=nx.sEl; } }
     }
   } else if(inZone){
     wf.wrong++; wf.combo=0; $("comboN").textContent="0";
@@ -1755,6 +1865,19 @@ document.querySelectorAll("#wfMode .wfmode-btn").forEach(b=>{
     document.querySelectorAll("#wfMode .wfmode-btn").forEach(x=>x.classList.remove("active"));
     b.classList.add("active"); wf.mode=b.dataset.mode;
     if(curPage===3) wfStart();
+  };
+});
+// 瀑布 / 五线谱 视图切换（不重开，实时切换同一段演奏的可视化）
+document.querySelectorAll("#wfView .wfmode-btn").forEach(b=>{
+  b.onclick=()=>{
+    if(b.classList.contains("active")) return;
+    document.querySelectorAll("#wfView .wfmode-btn").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active"); wf.view=b.dataset.view;
+    $("wfField").classList.toggle("staffview", wf.view==="staff");
+    if(curPage===3){
+      if(wf.view==="staff"){ layoutStaff(); buildStaffNotes(); reapplyStaffStates(); startStaffRAF(); }
+      else stopStaffRAF();
+    }
   };
 });
 
