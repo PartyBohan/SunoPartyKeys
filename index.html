@@ -560,6 +560,7 @@ Ah ah ah-ah, la la</textarea>
         <div class="vitem"><span class="vtag">v14</span><div class="vbody"><div class="vtask" data-i18n="vt11">增加学习模式</div><div class="vdesc" data-i18n="vd11">加入 跟弹 / 连弹 切换：跟弹等你弹对，连弹保持音乐前进；并平滑八度跳跃、去掉过密音符。</div></div></div>
         <div class="vitem"><span class="vtag">v15</span><div class="vbody"><div class="vtask" data-i18n="vt12">改善等待体验</div><div class="vdesc" data-i18n="vd12">分轨进行时先试听预览，分轨完成或失败后淡出。</div></div></div>
         <div class="vitem"><span class="vtag">v16</span><div class="vbody"><div class="vtask" data-i18n="vt13">确定品牌</div><div class="vdesc" data-i18n="vd13">产品定名 Shine Up, Notes On（首字母藏 SUNO），并加上中文名「光音成曲」。</div></div></div>
+        <div class="vitem"><span class="vtag">v17</span><div class="vbody"><div class="vtask" data-i18n="vt14">加入五线谱视图</div><div class="vdesc" data-i18n="vd14">跟弹页新增「瀑布 / 五线谱」切换：用大谱表（高低音谱号、符头符干、升号、加线）显示同一段旋律，琴键同步亮灯，跟弹/连弹与正误反馈一致。</div></div></div>
       </div>
     </div>
   </div>
@@ -693,6 +694,7 @@ const I18N={
     vt11:"增加学习模式", vd11:"加入 跟弹 / 连弹 切换：跟弹等你弹对，连弹保持音乐前进；并平滑八度跳跃、去掉过密音符。",
     vt12:"改善等待体验", vd12:"分轨进行时先试听预览，分轨完成或失败后淡出。",
     vt13:"确定品牌", vd13:"产品定名 Shine Up, Notes On（首字母藏 SUNO），并加上中文名「光音成曲」。",
+    vt14:"加入五线谱视图", vd14:"跟弹页新增「瀑布 / 五线谱」切换：用大谱表（高低音谱号、符头符干、升号、加线）显示同一段旋律，琴键同步亮灯，跟弹/连弹与正误反馈一致。",
     grpStyle:"风格", grpTempo:"速度", grpInst:"主要乐器（可多选）", grpVocal:"人声",
     promptLabel:"Suno 提示词（可手动修改）", promptPh:"先录一个动机…", lyricsLabel:"人声内容（啊啊啊，无歌词）",
     genBtn:"SUNO - Generate!", genIdle:"未开始",
@@ -764,6 +766,7 @@ const I18N={
     vt11:"Add learning modes", vd11:"Added Follow / Flow toggle: Follow waits for correct notes; Flow keeps the music moving. Also smoothed octave jumps and removed overly dense notes.",
     vt12:"Improve waiting experience", vd12:"Added preview playback while stem separation is running, then fades it out when separation completes or fails.",
     vt13:"Finalize branding", vd13:"Renamed the product Shine Up, Notes On, hiding SUNO in the initials, and added the Chinese name 光音成曲.",
+    vt14:"Add staff-notation view", vd14:"Added a Waterfall / Staff toggle on the play-along page: a grand staff (treble & bass clefs, note heads, stems, sharps, ledger lines) shows the same melody, with the keyboard lighting in sync and identical follow/flow modes and right/wrong feedback.",
     grpStyle:"Style", grpTempo:"Tempo", grpInst:"Instruments (multi)", grpVocal:"Vocals",
     promptLabel:"Suno prompt (editable)", promptPh:"Record a motif first…", lyricsLabel:"Vocal content (wordless \"ah\")",
     genBtn:"SUNO - Generate!", genIdle:"Not started",
@@ -1846,7 +1849,7 @@ function wfFinish(){
   // 3 秒后把「Congratulations!」换成上线地址
   if(wf.liveTimer) clearTimeout(wf.liveTimer);
   wf.liveTimer=setTimeout(()=>{
-    if(wf.finished && !$("wfCelebrate").classList.contains("hidden")) $("celeBig").textContent="Live on suno.partykeys.org";
+    if(wf.finished && !$("wfCelebrate").classList.contains("hidden")) $("celeBig").textContent="Live on suno.partykeys.ai";
   },3000);
   const r=$("wfField").getBoundingClientRect(), W=r.width, H=wf.fieldH;
   if(wf.fwTimer) clearInterval(wf.fwTimer);
