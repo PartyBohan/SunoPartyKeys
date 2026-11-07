@@ -5,10 +5,10 @@
   "functions": {"api/suno-bridge.ts":{"maxDuration":60}},
   "rewrites": [
     {"source":"/api/auth/:path*","destination":"https://suno.popumusic.cn/api/auth/:path*"},
-    {"source":"/api/providers/:path*","destination":"https://suno.popumusic.cn/api/providers/:path*"},
     {"source":"/api/providers","destination":"https://suno.popumusic.cn/api/providers"},
-    {"source":"/api/jobs/:path*","destination":"https://suno.popumusic.cn/api/jobs/:path*"},
+    {"source":"/api/providers/:path*","destination":"https://suno.popumusic.cn/api/providers/:path*"},
     {"source":"/api/jobs","destination":"https://suno.popumusic.cn/api/jobs"},
+    {"source":"/api/jobs/:path*","destination":"https://suno.popumusic.cn/api/jobs/:path*"},
     {"source":"/api/account","destination":"https://suno.popumusic.cn/api/account"},
     {"source":"/api/health","destination":"https://suno.popumusic.cn/api/health"},
     {"source":"/api/upload","destination":"https://suno.popumusic.cn/api/upload"},
