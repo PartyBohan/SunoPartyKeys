@@ -1,6 +1,6 @@
 import {createHash,createPrivateKey,createPublicKey,sign,verify,randomUUID} from 'node:crypto';
 import type {IncomingMessage,ServerResponse} from 'node:http';
-import {publicFetch} from './public-fetch';
+import {publicFetch} from './public-fetch.js';
 
 const MCP='https://api.suno.com/mcp';
 const TOKEN='https://studio-api-prod.suno.com/api/v2/external/oauth/token/';
