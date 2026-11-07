@@ -2,7 +2,7 @@ import {env} from 'cloudflare:workers';
 import {validateNotes} from './midi.mjs';
 export type Clip={id:string;status:string;title:string;audio_url:string|null;song_url:string|null;image_url:string|null;duration:number|null;error:string|null;embed_url?:string|null};
 export type Creation={id:string;provider:string;requestId:string;title:string;prompt:string;instrumental:boolean;scene:number;phase:string;sourceId?:string;clipIds:string[];clips:Clip[];notes:any[];pedals:any[];sourceKey:string;createdAt:number;updatedAt:number;error?:string;errorCode?:string;fingerprint:string;legacy?:boolean;lockUntil?:number;lease?:string;customBinding?:string;pollOffset?:number;resumePhase?:string};
-type Context={token:string;custom:any;call:(token:string,tool:string,args?:any)=>Promise<any>;normalize:(raw:any)=>any;publicHttps:(url:string)=>URL;fetch?:typeof fetch};
+type Context={token:string;custom:any;call:(token:string,tool:string,args?:any)=>Promise<any>;normalize:(raw:any)=>any;publicHttps:(url:string)=>URL;fetch?:typeof fetch;uploadFetch?:typeof fetch};
 const fail=(message:string,status=400,code='request_failed')=>Object.assign(new Error(message),{status,code});
 const json=(v:any,status=200)=>Response.json(v,{status,headers:{'Cache-Control':'no-store'}});
 const bindings=()=>{if(!env.DB||!env.BUCKET)throw fail('Creation storage is unavailable. Your melody is still saved on this device.',503,'storage_unavailable');return {db:env.DB,bucket:env.BUCKET};};
@@ -56,7 +56,7 @@ export async function jobWrite(req:Request,path:string,ctx:Context):Promise<Resp
     }else{
      const upload=await ctx.call(ctx.token,'audio-upload-create',{title:job.title});if(!upload.id||!upload.upload_url)throw fail('Suno did not return an upload location.',502);job.sourceId=upload.id;await save(owner,job);
      const target=ctx.publicHttps(upload.upload_url);if(!['.amazonaws.com','.cloudflarestorage.com','.suno.com','.suno.ai','.googleapis.com'].some(s=>target.hostname.endsWith(s)))throw fail('Suno returned an unrecognized upload host.',502);
-     const sent=await fetch(target.href,{method:'PUT',headers:{'Content-Type':'audio/wav'},body:await source.arrayBuffer(),signal:AbortSignal.timeout(25000)});if(!sent.ok)throw fail('The melody upload did not finish.',502);
+     const sent=await (ctx.uploadFetch||fetch)(target.href,{method:'PUT',headers:{'Content-Type':'audio/wav'},body:await source.arrayBuffer(),signal:AbortSignal.timeout(25000)});if(!sent.ok)throw fail('The melody upload did not finish.',502);
      const completed=ctx.normalize(await ctx.call(ctx.token,'audio-upload-complete',{id:upload.id}));if(!completed.id)throw fail('Suno did not return the uploaded audio clip ID.',502,'missing_source_id');job.sourceId=completed.id;job.phase='source_processing';
     }await save(owner,job);return json(view(job));
    }

@@ -10,6 +10,8 @@ export class ApiError extends Error {constructor(message:string,public status=40
 const config=runtimeValue;
 let providerFetch:typeof fetch=(input,init)=>fetch(input,init);
 export function setProviderFetch(value:typeof fetch){providerFetch=value;}
+let sunoFetch:typeof fetch=(input,init)=>fetch(input,init);
+export function setSunoFetch(value:typeof fetch){sunoFetch=value;}
 const b64=(bytes:Uint8Array)=>btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const unb64=(s:string)=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
 const cookieValue=(req:Request,name:string)=>req.headers.get('cookie')?.split(';').map(s=>s.trim()).find(s=>s.startsWith(name+'='))?.slice(name.length+1);
@@ -28,7 +30,7 @@ export async function seal(data:unknown){const iv=crypto.getRandomValues(new Uin
 export async function unseal<T>(value?:string):Promise<T|null>{try{if(!value)return null;const [a,b]=value.split('.');return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(a)},await encryptionKey(),unb64(b))));}catch{return null;}}
 async function readJson(res:Response){const text=await res.text();try{return JSON.parse(text);}catch{throw new ApiError(res.ok?'The music service returned an unreadable response.':`Music service HTTP ${res.status}`,res.ok?502:res.status,'provider_response_error');}}
 async function oauthToken(body:Record<string,string>){
-  const res=await fetch(`${OAUTH}/token/`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','User-Agent':'codex/0.160.0'},body:new URLSearchParams(body),signal:AbortSignal.timeout(20000)});
+  const res=await sunoFetch(`${OAUTH}/token/`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','User-Agent':'codex/0.160.0'},body:new URLSearchParams(body),signal:AbortSignal.timeout(20000)});
   const data=await readJson(res);if(!res.ok||!data.access_token)throw new ApiError('Please connect your Suno account again.',401,'connection_expired');
   return {...data,expires_at:Date.now()+Number(data.expires_in||900)*1000} as Session;
 }
@@ -46,12 +48,12 @@ async function rpcResponse(res:Response){
 }
 export async function sunoCall(token:string,tool:string,args:unknown={}){
   const headers:Record<string,string>={'Content-Type':'application/json','Accept':'application/json, text/event-stream','Authorization':`Bearer ${token}`,'User-Agent':'codex/0.160.0'};
-  const init=await fetch(API,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2024-11-05',capabilities:{},clientInfo:{name:'xiaoshigan-music-ocean',version:'2.0.0'}}}),signal:AbortSignal.timeout(20000)});
+  const init=await sunoFetch(API,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',id:1,method:'initialize',params:{protocolVersion:'2024-11-05',capabilities:{},clientInfo:{name:'xiaoshigan-music-ocean',version:'2.0.0'}}}),signal:AbortSignal.timeout(20000)});
   const initialized=await rpcResponse(init);if(initialized.error)throw new ApiError(initialized.error.message||'Unable to connect to Suno.',502);
   const sid=init.headers.get('mcp-session-id');if(sid)headers['Mcp-Session-Id']=sid;
   headers['MCP-Protocol-Version']=initialized.result?.protocolVersion||'2024-11-05';
-  await fetch(API,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',method:'notifications/initialized'}),signal:AbortSignal.timeout(10000)});
-  const res=await fetch(API,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/call',params:{name:tool,arguments:args}}),signal:AbortSignal.timeout(tool==='audio-wait'?60000:35000)});
+  await sunoFetch(API,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',method:'notifications/initialized'}),signal:AbortSignal.timeout(10000)});
+  const res=await sunoFetch(API,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/call',params:{name:tool,arguments:args}}),signal:AbortSignal.timeout(tool==='audio-wait'?60000:35000)});
   const payload=await rpcResponse(res);if(payload.error)throw new ApiError(payload.error.message||'Suno could not complete this request.',502);
   const result=payload.result;
   let data=result?.structuredContent;
@@ -113,7 +115,7 @@ export async function api(req:Request):Promise<Response>{
     if(provider==='custom'){custom=await unseal<Custom>(cookieValue(req,'ocean_custom'));if(!custom)throw new ApiError('Connect another music service in Settings.',401,'custom_not_connected');}
     else {const s=await session(req);token=s.value.access_token;if(s.updated)updatedSession=s.value;}
     let result:unknown;
-    const written=await jobWrite(req,path,{token,custom,call:sunoCall,normalize:normalizeClip,publicHttps,fetch:providerFetch});if(written){if(updatedSession)written.headers.append('Set-Cookie',cookie(COOKIE,await seal(updatedSession)));return written;}
+    const written=await jobWrite(req,path,{token,custom,call:sunoCall,normalize:normalizeClip,publicHttps,fetch:providerFetch,uploadFetch:sunoFetch});if(written){if(updatedSession)written.headers.append('Set-Cookie',cookie(COOKIE,await seal(updatedSession)));return written;}
     if(path==='account')result=await sunoCall(token,'account-usage');
     else if(path==='upload'&&req.method==='POST'){
       if(Number(req.headers.get('content-length')||0)>13000000)throw new ApiError('Melody file is too large.',413);
@@ -126,7 +128,7 @@ export async function api(req:Request):Promise<Response>{
       }else{
         const upload=await sunoCall(token,'audio-upload-create',{title:'Music Ocean — Original Melody'}),target=publicHttps(upload.upload_url);
         const trusted=['.amazonaws.com','.cloudflarestorage.com','.suno.com','.suno.ai','.googleapis.com'];if(!trusted.some(s=>target.hostname.endsWith(s)))throw new ApiError('Suno returned an unrecognized upload host.',502,'upload_host_unsupported');
-        const sent=await fetch(target.href,{method:'PUT',headers:{'Content-Type':'audio/wav'},body:bytes,signal:AbortSignal.timeout(25000)});if(!sent.ok)throw new ApiError('The melody upload failed. Your notes are saved; please retry.',502,'upload_failed');
+        const sent=await sunoFetch(target.href,{method:'PUT',headers:{'Content-Type':'audio/wav'},body:bytes,signal:AbortSignal.timeout(25000)});if(!sent.ok)throw new ApiError('The melody upload failed. Your notes are saved; please retry.',502,'upload_failed');
         const complete=await sunoCall(token,'audio-upload-complete',{id:upload.id});result={...normalizeClip(complete),phase:'upload'};
       }
     }else if(path==='generate'&&req.method==='POST'){

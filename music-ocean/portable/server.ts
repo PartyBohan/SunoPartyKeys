@@ -2,11 +2,13 @@ import http from 'node:http';
 import {readFile,stat} from 'node:fs/promises';
 import {resolve,sep,extname} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {api,seal,unseal,sunoOwner,setProviderFetch} from '../lib/suno-server';
+import {api,seal,unseal,sunoOwner,setProviderFetch,setSunoFetch} from '../lib/suno-server';
 import {storage} from './cloudflare-node';
 import {publicFetch} from './public-fetch';
+import {bridgeFetch} from './suno-bridge';
 
 setProviderFetch(publicFetch);
+setSunoFetch(bridgeFetch);
 
 const assets=resolve(fileURLToPath(new URL('../dist-web/',import.meta.url)));
 const approved=(process.env.OCEAN_ALLOWED_ORIGINS||'https://suno.popumusic.cn,https://suno.partykeys.ai').split(',').map(x=>x.trim()).filter(Boolean);

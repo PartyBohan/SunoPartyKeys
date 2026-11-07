@@ -39,8 +39,8 @@ export class Piano {
   stop(){this.pedals.clear();this.deferred.clear();for(const id of this.active.keys())this.release(id);}
   async render(notes:Note[],pedals:Pedal[]=[]){
     this.ensure();await this.loading;
-    const end=Math.min(66,Math.max(8,...notes.map(n=>n.start+n.duration+1.5),...pedals.map(p=>p.start+1)));
-    const ctx=new OfflineAudioContext(1,Math.ceil(end*44100),44100),master=ctx.createGain();master.gain.value=.8;const comp=ctx.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=3;comp.knee.value=8;master.connect(comp);comp.connect(ctx.destination);
+    const end=Math.min(65,Math.max(8,...notes.map(n=>n.start+n.duration+1.5),...pedals.map(p=>p.start+1)));
+    const ctx=new OfflineAudioContext(1,Math.ceil(end*32000),32000),master=ctx.createGain();master.gain.value=.8;const comp=ctx.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=3;comp.knee.value=8;master.connect(comp);comp.connect(ctx.destination);
     for(const n of notes){
       const voice=this.voice(ctx,n.note,n.velocity,n.start,master);let release=n.start+n.duration;
       const channelPedals=pedals.filter(p=>p.channel===n.channel).sort((a,b)=>a.start-b.start),before=channelPedals.filter(p=>p.start<=release).at(-1);
