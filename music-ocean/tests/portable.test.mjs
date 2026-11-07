@@ -12,6 +12,7 @@ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const address=server.address();
 const realFetch=globalThis.fetch;
 let providerCalls=0;
+let publicProfileOnly=false;
 globalThis.fetch=async(input,init)=>{
  const url=String(input);
  if(url.includes('studio-api-prod.suno.com')&&url.endsWith('/token/'))return Response.json({access_token:'isolated-test-token',refresh_token:'isolated-test-refresh',expires_in:900});
@@ -20,7 +21,8 @@ globalThis.fetch=async(input,init)=>{
   if(data.method==='initialize')return Response.json({jsonrpc:'2.0',id:data.id,result:{protocolVersion:'2024-11-05'}});
   if(data.method==='notifications/initialized')return new Response(null,{status:202});
   assert.equal(data.params.name,'account-me','test must never call a paid creation tool');
-  return Response.json({jsonrpc:'2.0',id:data.id,result:{structuredContent:{data:[{profile:{user_id:'isolated-suno-account-a'}}]}}});
+  const profile=publicProfileOnly?{avatar_url:'https://example.com/avatar.png',display_name:'Editable name',handle:'editable-handle',profile_url:'https://suno.com/@editable-handle'}:{data:[{profile:{user_id:'isolated-suno-account-a'}}]};
+  return Response.json({jsonrpc:'2.0',id:data.id,result:{structuredContent:profile}});
  }
  return realFetch(input,init);
 };
@@ -51,6 +53,23 @@ test('Suno OAuth uses the matching domain and moves only the signed device libra
  const signedIn=await request('/api/jobs',{headers:{cookie:accountCookie}});assert.equal(signedIn.json().jobs[0].id,id);
  const disconnectedDevice=await request('/api/jobs',{headers:{cookie:deviceCookie}});assert.deepEqual(disconnectedDevice.json(),{jobs:[]});
  const otherAccount=await seal({access_token:'test',expires_at:Date.now()+900000,user_id:'isolated-account-b'});const isolated=await request(`/api/jobs/${id}`,{headers:{cookie:'ocean_suno='+otherAccount}});assert.equal(isolated.status,404);
+});
+test('public-profile-only OAuth succeeds while web history stays isolated by signed browser',async()=>{
+ publicProfileOnly=true;
+ try{
+  const browser=await request('/api/jobs'),browserCookie=cookie(browser.headers,'ocean_identity');
+  const custom=await seal({url:'https://api.example.com/create',statusUrl:'',key:'test-only',model:'unit'}),jobId='5aa1f422-e99e-4223-a520-660872748c50';
+  const wav=new Uint8Array(64);wav.set(new TextEncoder().encode('RIFF'));wav.set(new TextEncoder().encode('WAVE'),8);
+  const form=new FormData();form.set('audio',new Blob([wav]),'melody.wav');form.set('midi',JSON.stringify({notes:[60,64,67].map((note,i)=>({note,velocity:88,start:i*.2,duration:.1,channel:0})),pedals:[]}));form.set('requestId',jobId);form.set('provider','custom');
+  const encoded=new Request('http://test',{method:'POST',body:form}),body=Buffer.from(await encoded.arrayBuffer());
+  const created=await request('/api/jobs?provider=custom',{method:'POST',headers:{cookie:browserCookie+'; ocean_custom='+custom,'content-type':encoded.headers.get('content-type')},body});assert.equal(created.status,201);
+  const start=await request('/api/auth/suno?site_origin=https%3A%2F%2Fsuno.popumusic.cn',{headers:{cookie:browserCookie}}),state=new URL(start.headers.location).searchParams.get('state');
+  const callback=await request('/api/auth/callback?code=isolated-public-profile-code&state='+state,{headers:{cookie:browserCookie+'; '+cookie(start.headers,'ocean_oauth')}});assert.equal(callback.status,302);
+  const accountCookie=cookie(callback.headers,'ocean_suno');assert.ok(accountCookie);
+  const providers=await request('/api/providers',{headers:{cookie:browserCookie+'; '+accountCookie}});assert.equal(providers.json().suno.connected,true);assert.equal(providers.json().suno.libraryScope,'browser');
+  assert.equal((await request('/api/jobs/'+jobId,{headers:{cookie:browserCookie+'; '+accountCookie}})).status,200);
+  assert.equal((await request('/api/jobs/'+jobId,{headers:{cookie:accountCookie}})).status,404);
+ }finally{publicProfileOnly=false;}
 });
 test('unknown cross-origin writes fail and never reach a music provider',async()=>{const before=providerCalls;const response=await request('/api/providers/custom',{method:'POST',headers:{origin:'https://untrusted.example','content-type':'application/json'},body:'{}'});assert.equal(response.status,403);assert.equal(providerCalls,before);});
 test('custom providers cannot resolve to internal or metadata addresses',async()=>{for(const address of ['127.0.0.1','10.1.2.3','169.254.169.254','172.16.0.1','192.168.1.1','198.18.0.1','::1','fe80::1','fd00::1','::ffff:127.0.0.1'])assert.equal(publicAddress(address),false,address);for(const address of ['1.1.1.1','8.8.8.8','2606:4700:4700::1111'])assert.equal(publicAddress(address),true,address);await assert.rejects(()=>publicFetch('https://127.0.0.1/'),/public Internet/);});

@@ -6,7 +6,7 @@ The two domains serve the same client. `suno.partykeys.ai` starts in English and
 
 - Aliyun: the Node 24 server serves the Chinese website and the shared API. Its SQLite database and original WAV files live outside the application release directory.
 - Vercel: the overseas client is built using `npm run build:web`. Product API routes forward to Aliyun; `/api/suno-bridge` is a separate server function for Suno communication. API responses are private and never cached.
-- Suno: each creator connects their own account. Verified `account-me` identity scopes that account's private library. Custom API work uses a signed device identity; it moves to that browser's verified Suno account on connection.
+- Suno: each creator connects their own account; generated songs are saved to that Suno library. The live `account-me` tool returns public handle/avatar/profile URL fields without a stable user ID. Web recordings and task history therefore stay private to the signed browser session, as described in the product. Public handles are never used as storage identities. If a future provider response includes a verified stable ID, only that signed browser's records can move to that account. Clearing site cookies or changing domains does not sync this browser-scoped web history.
 - The Node entry strips incoming platform identity headers. It does not trust a browser-supplied user ID. Credentials remain in encrypted HttpOnly cookies. Custom provider traffic pins a public DNS result and does not follow redirects to other addresses.
 
 ## Build
@@ -54,4 +54,4 @@ The existing Sites publication remains a separate rollback copy. Existing Sites 
 
 ## Verification
 
-TypeScript, the static build and Node bundle pass. The 25 tests include real SQLite statements, original WAV bytes, range reads, HTTP owner isolation, signed device-to-account migration, matching OAuth redirects, account profile envelopes, safe idempotency, rejection of internal provider addresses and a real HTTP bridge with signature, body, expiry, destination and size checks. Tests mock Suno and do not spend credits. Real account consent, production host verification and old-library migration are separate deployment checks.
+TypeScript, the static build and Node bundle pass. The 26 tests include real SQLite statements, original WAV bytes, range reads, HTTP owner isolation, signed device-to-account migration, matching OAuth redirects, account profile envelopes, successful public-profile-only authorization with browser isolation, safe idempotency, rejection of internal provider addresses and a real HTTP bridge with signature, body, expiry, destination and size checks. Tests mock Suno and do not spend credits. Real account consent, production host verification and old-library migration are separate deployment checks.
