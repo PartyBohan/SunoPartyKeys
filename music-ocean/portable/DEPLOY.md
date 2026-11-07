@@ -54,4 +54,4 @@ The existing Sites publication remains a separate rollback copy. Existing Sites 
 
 ## Verification
 
-TypeScript, the static build and Node bundle pass. The 24 tests include real SQLite statements, original WAV bytes, range reads, HTTP owner isolation, signed device-to-account migration, matching OAuth redirects, safe idempotency, rejection of internal provider addresses and a real HTTP bridge with signature, body, expiry, destination and size checks. Tests mock Suno and do not spend credits. Real account consent, production host verification and old-library migration are separate deployment checks.
+TypeScript, the static build and Node bundle pass. The 25 tests include real SQLite statements, original WAV bytes, range reads, HTTP owner isolation, signed device-to-account migration, matching OAuth redirects, account profile envelopes, safe idempotency, rejection of internal provider addresses and a real HTTP bridge with signature, body, expiry, destination and size checks. Tests mock Suno and do not spend credits. Real account consent, production host verification and old-library migration are separate deployment checks.

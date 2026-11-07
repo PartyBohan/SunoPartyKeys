@@ -75,6 +75,18 @@ export function normalizeClip(raw:any){
   return {...first,id:first.id||clip_ids[0],clip_ids,clips};
 }
 const json=(data:unknown,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store'}});
+export function accountIdentity(profile:any):string|null{
+ let value=profile;
+ for(let depth=0;depth<10;depth++){
+  if(Array.isArray(value)){if(value.length!==1)return null;value=value[0];continue;}
+  if(!value||typeof value!=='object')return null;
+  for(const candidate of [value.user_id,value.userId,value.id,value.user?.id,value.profile?.id])if(typeof candidate==='string'&&/^[a-zA-Z0-9_-]{1,200}$/.test(candidate))return candidate;
+  const next=value.structuredContent??value.data??value.user??value.profile??value.user_profile??value.result;
+  if(!next||next===value)return null;value=next;
+ }
+ return null;
+}
+const profileShape=(value:any,depth=0):any=>depth>3?typeof value:Array.isArray(value)?[value.length,profileShape(value[0],depth+1)]:value&&typeof value==='object'?Object.fromEntries(Object.entries(value).slice(0,16).map(([key,child])=>[key,profileShape(child,depth+1)])):typeof value;
 const assertSameOrigin=(req:Request)=>{const source=req.headers.get('origin');if(source&&source!==new URL(req.url).origin&&source!==config('PUBLIC_ORIGIN')&&!allowedOrigins().includes(source))throw new ApiError('Invalid request origin.',403);};
 export async function api(req:Request):Promise<Response>{
   const path=new URL(req.url).pathname.replace(/^\/api\//,'');let updatedSession:Session|null=null;
@@ -94,7 +106,7 @@ export async function api(req:Request):Promise<Response>{
       if(!stored||stored.expires<Date.now()||stored.state!==u.searchParams.get('state')||!u.searchParams.get('code'))throw new ApiError('The connection link expired. Please try again in Settings.',400,'oauth_state_mismatch');
       const s=await oauthToken({grant_type:'authorization_code',code:u.searchParams.get('code')!,redirect_uri:stored.redirect,code_verifier:stored.verifier,client_id:stored.client_id||config('SUNO_CLIENT_ID'),resource:API});
       s.client_id=stored.client_id||config('SUNO_CLIENT_ID');
-      if(config('OCEAN_AUTH_MODE')==='suno'){const profile=await sunoCall(s.access_token,'account-me');const id=profile?.id||profile?.user_id||profile?.user?.id||profile?.profile?.id;if(typeof id!=='string'||!/^[a-zA-Z0-9_-]{1,200}$/.test(id))throw new ApiError('Suno did not return an account identity. Please reconnect.',502,'missing_account_identity');s.user_id=id;}
+      if(config('OCEAN_AUTH_MODE')==='suno'){const profile=await sunoCall(s.access_token,'account-me');const id=accountIdentity(profile);if(!id){console.warn('Unsupported Suno public profile shape:',JSON.stringify(profileShape(profile)));throw new ApiError('Suno did not return an account identity. Please reconnect.',502,'missing_account_identity');}s.user_id=id;}
       const headers=new Headers({Location:`${new URL(stored.redirect).origin}/?connection=success`,'Cache-Control':'no-store'});headers.append('Set-Cookie',cookie(COOKIE,await seal(s)));headers.append('Set-Cookie',cookie('ocean_oauth','',0));return new Response(null,{status:302,headers});
     }
     if(path==='providers'){

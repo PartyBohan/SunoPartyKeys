@@ -20,7 +20,7 @@ globalThis.fetch=async(input,init)=>{
   if(data.method==='initialize')return Response.json({jsonrpc:'2.0',id:data.id,result:{protocolVersion:'2024-11-05'}});
   if(data.method==='notifications/initialized')return new Response(null,{status:202});
   assert.equal(data.params.name,'account-me','test must never call a paid creation tool');
-  return Response.json({jsonrpc:'2.0',id:data.id,result:{structuredContent:{id:'isolated-suno-account-a'}}});
+  return Response.json({jsonrpc:'2.0',id:data.id,result:{structuredContent:{data:[{profile:{user_id:'isolated-suno-account-a'}}]}}});
  }
  return realFetch(input,init);
 };

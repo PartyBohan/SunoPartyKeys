@@ -1,10 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MidiParser,toMidi,validateNotes,DEMO,normalizeTime} from '../lib/midi.mjs';
-import {api,seal,normalizeClip,publicHttps,sunoCall} from './server-under-test.mjs';
+import {api,seal,normalizeClip,publicHttps,sunoCall,accountIdentity} from './server-under-test.mjs';
 process.env.OCEAN_COOKIE_SECRET='development-only-test-secret-with-more-than-32-characters';
 const req=(path,init={})=>new Request('https://ocean.example/api/'+path,init);
 const auth=async()=>`ocean_suno=${await seal({access_token:'test-token',expires_at:Date.now()+600000})}`;
+test('account ownership uses a unique Suno identity through response envelopes',()=>{
+ assert.equal(accountIdentity({data:[{profile:{user_id:'verified-user-a'}}]}),'verified-user-a');
+ assert.equal(accountIdentity({user:{id:'verified-user-a'}}),'verified-user-a');
+ assert.equal(accountIdentity({data:[{id:'a'},{id:'b'}]}),null);
+ assert.equal(accountIdentity({data:[{profile:{handle:'editable-name'}}]}),null);
+ assert.equal(accountIdentity({user_id:'../another-account'}),null);
+});
 test('MIDI packets preserve running status, channel, velocity, pedal, realtime and split messages',()=>{
  const events=[],parser=new MidiParser(e=>events.push(e));
  parser.feed([0x92,60,1,0xf8,64],100,'keyboard');parser.feed([127,60,0,0xb2,64,126,0xf0,1,2,0xf7,0x82,64,0],110,'keyboard');
