@@ -52,3 +52,7 @@ Piano samples: Salamander Grand Piano V3 (Yamaha C5), Alexander Holm, [CC BY 3.0
 Sites provisions `DB` (D1) and `BUCKET` (R2) from `.openai/hosting.json`. Migrations live in `drizzle/`; source files are owner-scoped and content-addressed. Creation advances use compare-and-swap leases, stable Suno idempotency keys and preservation of every expected child clip. A custom endpoint with an ambiguous POST result is never automatically resubmitted.
 
 The three background MP4s in `public/video` are deterministic loops from the approved scene illustrations: 8 seconds, 1280×720, 24fps, silent H.264, identical first/last decoded frames. They are not AI-generated video. Reduced-motion preference, user motion setting and background visibility are respected.
+
+## Aliyun and overseas deployment
+
+The portable client and Node 24 backend build with `npm run build:portable`. See [portable/DEPLOY.md](portable/DEPLOY.md) for the shared persistent API, Vercel frontend, exact OAuth callbacks, private data handling, rollback and checks that are still pending. These files do not by themselves mean either production domain has been migrated.

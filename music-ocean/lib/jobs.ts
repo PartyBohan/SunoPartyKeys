@@ -2,7 +2,7 @@ import {env} from 'cloudflare:workers';
 import {validateNotes} from './midi.mjs';
 export type Clip={id:string;status:string;title:string;audio_url:string|null;song_url:string|null;image_url:string|null;duration:number|null;error:string|null;embed_url?:string|null};
 export type Creation={id:string;provider:string;requestId:string;title:string;prompt:string;instrumental:boolean;scene:number;phase:string;sourceId?:string;clipIds:string[];clips:Clip[];notes:any[];pedals:any[];sourceKey:string;createdAt:number;updatedAt:number;error?:string;errorCode?:string;fingerprint:string;legacy?:boolean;lockUntil?:number;lease?:string;customBinding?:string;pollOffset?:number;resumePhase?:string};
-type Context={token:string;custom:any;call:(token:string,tool:string,args?:any)=>Promise<any>;normalize:(raw:any)=>any;publicHttps:(url:string)=>URL};
+type Context={token:string;custom:any;call:(token:string,tool:string,args?:any)=>Promise<any>;normalize:(raw:any)=>any;publicHttps:(url:string)=>URL;fetch?:typeof fetch};
 const fail=(message:string,status=400,code='request_failed')=>Object.assign(new Error(message),{status,code});
 const json=(v:any,status=200)=>Response.json(v,{status,headers:{'Cache-Control':'no-store'}});
 const bindings=()=>{if(!env.DB||!env.BUCKET)throw fail('Creation storage is unavailable. Your melody is still saved on this device.',503,'storage_unavailable');return {db:env.DB,bucket:env.BUCKET};};
@@ -52,7 +52,7 @@ export async function jobWrite(req:Request,path:string,ctx:Context):Promise<Resp
     job.phase='uploading';job.error=undefined;await save(owner,job);const source=await bindings().bucket.get(job.sourceKey);if(!source)throw fail('Original melody was not found.',404);
     if(job.provider==='custom'){
      const custom=ctx.custom;if(!custom)throw fail('Connect your selected music service.',401);const fd=new FormData();fd.set('audio',new Blob([await source.arrayBuffer()],{type:'audio/wav'}),'melody.wav');fd.set('midi',JSON.stringify({format:'notes',bpm:96,notes:job.notes,pedals:job.pedals}));fd.set('prompt',job.prompt);fd.set('instrumental',String(job.instrumental));fd.set('model',custom.model);fd.set('duration','90');
-     const res=await fetch(custom.url,{method:'POST',headers:{...(custom.key?{Authorization:`Bearer ${custom.key}`}:{ }),'Idempotency-Key':job.requestId},body:fd,signal:AbortSignal.timeout(45000)});const raw=await res.json() as any;if(!res.ok)throw fail(raw.error?.message||raw.error||'Music service unavailable.',res.status);const normalized=ctx.normalize(raw);job.clipIds=normalized.clip_ids;job.clips=normalized.clips;job.phase='generating';
+     const res=await (ctx.fetch||fetch)(custom.url,{method:'POST',headers:{...(custom.key?{Authorization:`Bearer ${custom.key}`}:{ }),'Idempotency-Key':job.requestId},body:fd,signal:AbortSignal.timeout(45000)});const raw=await res.json() as any;if(!res.ok)throw fail(raw.error?.message||raw.error||'Music service unavailable.',res.status);const normalized=ctx.normalize(raw);job.clipIds=normalized.clip_ids;job.clips=normalized.clips;job.phase='generating';
     }else{
      const upload=await ctx.call(ctx.token,'audio-upload-create',{title:job.title});if(!upload.id||!upload.upload_url)throw fail('Suno did not return an upload location.',502);job.sourceId=upload.id;await save(owner,job);
      const target=ctx.publicHttps(upload.upload_url);if(!['.amazonaws.com','.cloudflarestorage.com','.suno.com','.suno.ai','.googleapis.com'].some(s=>target.hostname.endsWith(s)))throw fail('Suno returned an unrecognized upload host.',502);
@@ -71,7 +71,7 @@ export async function jobWrite(req:Request,path:string,ctx:Context):Promise<Resp
    if(job.phase==='generating'){
     if(job.provider==='custom'){
      if(!ctx.custom?.statusUrl){if(!job.clips.some(c=>c.audio_url||c.song_url))throw fail('Add a status endpoint for this music service.',400);}
-     else {const res=await fetch(ctx.custom.statusUrl.replace('{id}',encodeURIComponent(job.clipIds[0])),{headers:ctx.custom.key?{Authorization:`Bearer ${ctx.custom.key}`}:{},signal:AbortSignal.timeout(20000)});if(!res.ok)throw fail('Unable to check the music service.',res.status);job.clips=ctx.normalize(await res.json()).clips;}
+     else {const res=await (ctx.fetch||fetch)(ctx.custom.statusUrl.replace('{id}',encodeURIComponent(job.clipIds[0])),{headers:ctx.custom.key?{Authorization:`Bearer ${ctx.custom.key}`}:{},signal:AbortSignal.timeout(20000)});if(!res.ok)throw fail('Unable to check the music service.',res.status);job.clips=ctx.normalize(await res.json()).clips;}
     }else{
      const outstanding=job.clipIds.filter(id=>!job.clips.some(c=>c.id===id&&['complete','error','failed','cancelled'].includes(c.status))),offset=(job.pollOffset||0)%Math.max(1,outstanding.length),targets=[...outstanding.slice(offset),...outstanding.slice(0,offset)].slice(0,4);job.pollOffset=(offset+targets.length)%Math.max(1,outstanding.length);
      const reads=await Promise.allSettled(targets.map(id=>ctx.call(ctx.token,'audio-retrieve',{id})));

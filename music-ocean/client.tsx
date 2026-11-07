@@ -1,0 +1,9 @@
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import Ocean from './app/ocean';
+import {languageForHost} from './lib/locale';
+import './app/globals.css';
+
+const lang=languageForHost(location.host);document.documentElement.lang=lang==='en'?'en':'zh-CN';
+document.title=lang==='en'?'Music Ocean · PartyKeys × Xiaoshigan':'小视感 · 音乐海洋';
+createRoot(document.getElementById('root')!).render(<Ocean defaultLang={lang}/>);

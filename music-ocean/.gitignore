@@ -45,3 +45,13 @@ yarn-error.log*
 .DS_Store
 # Rebuilt test artifact
 /tests/server-under-test.mjs
+
+# Portable production outputs and private state
+/dist-web/
+/dist-node/
+/.ocean-data/
+/.vercel/
+!.env.portable.example
+
+# Also exclude a checkout-local dependency symlink.
+/node_modules
