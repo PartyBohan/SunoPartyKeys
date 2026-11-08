@@ -9,7 +9,7 @@ export async function createShareCard(input:CardInput):Promise<Blob>{
  c.fillStyle='#111316';c.fillRect(0,0,1080,1440);
  const sw=scene.width,sh=scene.height,scale=Math.max(1080/sw,820/sh);c.drawImage(scene,(1080-sw*scale)/2,(820-sh*scale)/2,sw*scale,sh*scale);
  const shade=c.createLinearGradient(0,200,0,850);shade.addColorStop(0,'#11131600');shade.addColorStop(1,'#111316');c.fillStyle=shade;c.fillRect(0,0,1080,850);
- c.drawImage(logo,60,52,46,46);c.fillStyle='#fff';c.font='600 25px -apple-system, sans-serif';c.fillText('音乐密码  /  MUSIC OCEAN',124,85);
+ c.drawImage(logo,60,52,46,46);c.fillStyle='#fff';c.font='600 25px -apple-system, sans-serif';c.fillText(input.lang==='zh'?'音乐密码  /  MUSIC OCEAN':'PartyKeys  /  MUSIC OCEAN',124,85);
  c.fillStyle='#c9e6f2';c.font='500 24px -apple-system, sans-serif';c.fillText(input.lang==='zh'?'我弹了几个音，做了这首歌。':'A few notes I played. A song of my own.',64,804);
  c.fillStyle='#fff';c.font='700 64px -apple-system, sans-serif';let title=input.title.slice(0,46),line='',y=894,lines=0;for(const ch of title){if(c.measureText(line+ch).width>940){if(lines===1){while(c.measureText(line+'…').width>940)line=line.slice(0,-1);line+='…';break;}c.fillText(line,64,y);line='';y+=78;lines++;}line+=ch;}c.fillText(line,64,y);
  const rollY=Math.max(995,y+55),rollH=142;c.fillStyle='#1b1f24';c.beginPath();c.roundRect(60,rollY,960,rollH,16);c.fill();

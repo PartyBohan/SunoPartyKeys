@@ -1,0 +1,36 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {MUSIC_PRESETS,MAX_DIRECTION_CHARS,musicDirection,accountUsage,KEYBOARD_NOTES,WHITE_KEYS,BLACK_KEYS} from '../dist-node/studio-test.mjs';
+
+test('all five directions preserve the MIDI motif and a full user description within the provider limit',()=>{
+ assert.equal(MUSIC_PRESETS.length,5);
+ assert.equal(new Set(MUSIC_PRESETS.map(p=>p.id)).size,5);
+ for(let i=0;i<5;i++)for(const lang of ['zh','en']){
+  const extra=(lang==='zh'?'鼓':'x').repeat(MAX_DIRECTION_CHARS);
+  const prompt=musicDirection(i,extra,lang);
+  assert.ok(prompt.length<=1000,`${MUSIC_PRESETS[i].id}: ${prompt.length}`);
+  assert.ok(prompt.endsWith(extra));
+  assert.match(prompt,/Preserve the supplied MIDI melody/);
+  assert.ok(MUSIC_PRESETS[i].bpm>=116);
+ }
+});
+test('direction trims overlong text and safely falls back to the first preset',()=>{
+ assert.equal(musicDirection(999,'x'.repeat(900),'en'),musicDirection(0,'x'.repeat(500),'en'));
+ assert.ok(musicDirection(0,'  a custom hook  ','en').endsWith('a custom hook'));
+});
+test('hardware keyboard contains exactly 36 unique consecutive pitches and the correct 2+3 black-key groups',()=>{
+ assert.deepEqual(KEYBOARD_NOTES,Array.from({length:36},(_,i)=>48+i));
+ assert.equal(WHITE_KEYS.length,21);assert.equal(BLACK_KEYS.length,15);
+ assert.equal(new Set([...WHITE_KEYS,...BLACK_KEYS.map(k=>k.n)]).size,36);
+ assert.deepEqual(BLACK_KEYS.map(k=>k.x),[1,2,4,5,6,8,9,11,12,13,15,16,18,19,20]);
+ for(const key of BLACK_KEYS){assert.ok(WHITE_KEYS[key.x-1]<key.n);assert.ok(WHITE_KEYS[key.x]>key.n);}
+});
+test('usage keeps zero separate from unknown and accepts the actual nested account envelope',()=>{
+ assert.deepEqual(accountUsage({result:{structuredContent:{suno_account:{plan:{name:'Pro'},credits_remaining:0,download_credits_remaining:7}}}}),{plan:'Pro',generation:0,downloads:7});
+ assert.deepEqual(accountUsage({data:[{suno_account:{credits_remaining:-1,download_credits_remaining:'7'}}]}),{plan:null,generation:null,downloads:null});
+ assert.equal(accountUsage({data:{unrelated:true}}),null);
+});
+test('usage rejects non-finite numbers and terminates on cyclic or very deep data',()=>{
+ assert.deepEqual(accountUsage({suno_account:{credits_remaining:NaN,download_credits_remaining:Infinity}}),{plan:null,generation:null,downloads:null});
+ const cycle={};cycle.data=cycle;assert.equal(accountUsage(cycle),null);
+});
