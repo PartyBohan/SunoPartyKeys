@@ -10,7 +10,8 @@ const scenes=['tidal-prelude','moon-current','amber-reef'];
 const json=(v:unknown,status=200)=>Response.json(v,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 const valid=(s:string)=>/^[A-Za-z0-9_-]{32}$/.test(s);
 const escape=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
-function view(c:Card,privateView=true){return {token:c.token,title:c.title,scene:c.scene,notes:c.notes,duration:c.duration,status:c.status,...(privateView?{creditsRemaining:c.creditsRemaining,error:c.error}:{}),url:`${ORIGIN}/s/${c.token}`,audioUrl:c.status==='ready'?`/api/cards/${c.token}/audio`:undefined,coverUrl:c.coverKey&&c.status==='ready'?`/api/cards/${c.token}/cover`:`/images/${scenes[c.scene]}.webp`};}
+function view(c:Card,privateView=true){return {token:c.token,title:c.title,scene:c.scene,notes:c.notes,duration:c.duration,status:c.status,...(privateView?{creditsRemaining:c.creditsRemaining,error:c.error}:{}),url:`${ORIGIN}/s/${c.token}`,audioUrl:c.status==='ready'?`/api/cards/${c.token}/audio`:undefined,downloadUrl:c.status==='ready'?`/api/cards/${c.token}/download`:undefined,coverUrl:c.coverKey&&c.status==='ready'?`/api/cards/${c.token}/cover`:`/images/${scenes[c.scene]}.webp`};}
+function attachmentName(title:string){const name=(title.toWellFormed().replace(/[\u0000-\u001f\u007f/\\:*?"<>|]/g,' ').replace(/\s+/g,' ').trim().replace(/\.mp3$/i,'')||'music-ocean')+'.mp3';return `attachment; filename="music-ocean.mp3"; filename*=UTF-8''${encodeURIComponent(name).replace(/[!'()*]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase())}`;}
 async function get(token:string){if(!valid(token))throw new ApiError('音乐卡不存在或已停止分享。',404);const row=await storage.DB.prepare('SELECT document FROM ocean_cards WHERE token=?').bind(token).first();if(!row)throw new ApiError('音乐卡不存在或已停止分享。',404);return JSON.parse(String(row.document)) as Card;}
 async function ownerCard(req:Request,token:string){const c=await get(token);if(c.owner!==requestOwner(req)||c.revoked)throw new ApiError('音乐卡不存在或已停止分享。',404);return c;}
 async function publicCard(token:string){const c=await get(token);if(c.revoked||c.status!=='ready')throw new ApiError('音乐卡不存在或尚未准备好。',404);return c;}
@@ -59,9 +60,10 @@ export async function cardApi(req:Request):Promise<Response|null>{
   }
   if(req.method==='GET'||req.method==='HEAD'){
    const c=await publicCard(token);if(parts.length===3)return json(view(c,false));
-   const audio=parts[3]==='audio',key=audio?c.audioKey:parts[3]==='cover'?c.coverKey:undefined;if(!key)throw new ApiError('文件不存在。',404);
+   if(parts.length!==4)throw new ApiError('文件不存在。',404);
+   const download=parts[3]==='download',audio=parts[3]==='audio'||download,key=audio?c.audioKey:parts[3]==='cover'?c.coverKey:undefined;if(!key)throw new ApiError('文件不存在。',404);
    const object=await storage.BUCKET.get(key,audio&&req.headers.has('range')?{range:req.headers}:undefined);if(!object)throw new ApiError('文件暂不可用。',404);const range=object.range,offset=range?.offset||0,length=range?.length||object.size;
-   const headers=new Headers({'Content-Type':audio?'audio/mpeg':'image/png','Content-Length':String(length),'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Accept-Ranges':'bytes'});if(range)headers.set('Content-Range',`bytes ${offset}-${offset+length-1}/${object.size}`);return new Response(req.method==='HEAD'?null:object.body,{status:range?206:200,headers});
+   const headers=new Headers({'Content-Type':audio?'audio/mpeg':'image/png','Content-Length':String(length),'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Accept-Ranges':'bytes'});if(download)headers.set('Content-Disposition',attachmentName(c.title));if(range)headers.set('Content-Range',`bytes ${offset}-${offset+length-1}/${object.size}`);return new Response(req.method==='HEAD'?null:object.body,{status:range?206:200,headers});
   }
   throw new ApiError('Unknown route.',404);
  }catch(e){const error=e as ApiError;return json({error:error.message||'音乐卡暂不可用。',code:error.code},error.status||502);}

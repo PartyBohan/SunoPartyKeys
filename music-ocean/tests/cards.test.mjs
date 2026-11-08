@@ -30,7 +30,7 @@ test('only a creation owner can prepare a private, unpredictable share draft',as
  authCookie=ownerCookie+'; ocean_suno='+await seal({access_token:'test-only',expires_at:Date.now()+900000,download:true});
  const foreign=await post('/api/cards',{jobId,clipId:'fixture-clip'},'ocean_suno='+await seal({access_token:'foreign',expires_at:Date.now()+900000,download:true}));assert.equal(foreign.status,404);
  const result=await post('/api/cards',{jobId,clipId:'fixture-clip',title:'A <script>alert("test")</script>'});assert.equal(result.status,201);token=result.json().token;assert.match(token,/^[A-Za-z0-9_-]{32}$/);assert.equal(calls,0);
- assert.equal((await request('/api/cards/'+token)).status,404);assert.equal((await request('/s/'+token)).status,404);
+ assert.equal((await request('/api/cards/'+token)).status,404);assert.equal((await request('/s/'+token)).status,404);assert.equal((await request('/api/cards/'+token+'/download')).status,404);
 });
 test('download scope is opt-in and a missing scope never triggers an export',async()=>{
  const base=await request('/api/auth/suno'),extra=await request('/api/auth/suno?download=1');assert.ok(!new URL(base.headers.location).searchParams.get('scope').split(' ').includes('download'));assert.ok(new URL(extra.headers.location).searchParams.get('scope').split(' ').includes('download'));
@@ -53,10 +53,32 @@ test('a recipient gets only local metadata and seekable MP3, with no login or pr
 test('share deep links have escaped server-rendered metadata and local audio in their boot data',async()=>{
  const r=await request('/s/'+token);assert.equal(r.status,200);const s=r.text();assert.match(s,/property="og:type" content="music.song"/);assert.match(s,/property="og:title" content="A &lt;script&gt;/);assert.ok(!s.includes('<script>alert'));assert.match(s,/\\u003cscript>/);assert.ok(s.includes('https://suno.popumusic.cn/api/cards/'+token+'/audio'));assert.ok(!s.includes('https://suno.com'));assert.equal((s.match(/name="description"/g)||[]).length,1);assert.equal(r.headers['cache-control'],'no-store');
 });
+test('recipients download the full saved MP3 without login or another Suno charge',async()=>{
+ const before=calls,charged=spends,metadata=await request('/api/cards/'+token),data=metadata.json();
+ assert.equal(data.downloadUrl,'/api/cards/'+token+'/download');
+ const response=await request(data.downloadUrl);
+ assert.equal(response.status,200);assert.deepEqual(response.body,Buffer.from(bytes));
+ assert.equal(response.headers['content-type'],'audio/mpeg');assert.equal(response.headers['content-length'],String(bytes.length));assert.equal(response.headers['set-cookie'],undefined);
+ assert.match(response.headers['content-disposition'],/^attachment; filename="music-ocean\.mp3"; filename\*=UTF-8''/);
+ assert.equal(response.headers['cache-control'],'no-store');
+ const head=await request(data.downloadUrl,{method:'HEAD'});assert.equal(head.status,200);assert.equal(head.body.length,0);assert.equal(head.headers['content-disposition'],response.headers['content-disposition']);
+ const part=await request(data.downloadUrl,{headers:{range:'bytes=0-2'}});assert.equal(part.status,206);assert.equal(part.body.toString(),'ID3');assert.equal(part.headers['content-range'],'bytes 0-2/256');assert.equal(part.headers['content-disposition'],response.headers['content-disposition']);
+ assert.equal((await request(data.downloadUrl,{headers:{range:'bytes=999-'}})).status,416);assert.equal((await request(data.downloadUrl+'/extra')).status,404);
+ assert.equal(calls,before);assert.equal(spends,charged);
+});
+test('download filenames preserve Chinese while removing path and header injection characters',async()=>{
+ await post('/api/cards',{jobId,clipId:'fixture-clip',title:'海风 "Mix"\r\nX-Evil: yes/../.mp3'});
+ const r=await request('/api/cards/'+token+'/download',{method:'HEAD'});
+ assert.equal(r.status,200);assert.equal(r.headers['x-evil'],undefined);
+ const name=decodeURIComponent(r.headers['content-disposition'].split("filename*=UTF-8''")[1]);
+ assert.ok(name.startsWith('海风'));assert.ok(name.endsWith('.mp3'));assert.ok(!/[\r\n/\\:"<>|?*]/.test(name));
+ await post('/api/cards',{jobId,clipId:'fixture-clip',title:'x'.repeat(45)+'🎹'});
+ assert.equal((await request('/api/cards/'+token+'/download',{method:'HEAD'})).status,200,'a title truncated inside an emoji must still download');
+});
 test('foreign origins and recipients cannot edit or revoke a card; the owner can stop it',async()=>{
  const forbidden=await request('/api/cards/'+token+'/revoke',{method:'POST',headers:{cookie:authCookie,origin:'https://foreign.example','Content-Type':'application/json'},body:'{}'});assert.equal(forbidden.status,403);
  assert.equal((await post('/api/cards/'+token+'/revoke',{},'')).status,404);
- assert.equal((await post('/api/cards/'+token+'/revoke')).status,200);assert.equal((await request('/s/'+token)).status,404);assert.equal((await request('/api/cards/'+token+'/audio')).status,404);assert.equal((await request('/api/jobs/'+jobId,{headers:{cookie:ownerCookie}})).status,200);
+ assert.equal((await post('/api/cards/'+token+'/revoke')).status,200);assert.equal((await request('/s/'+token)).status,404);assert.equal((await request('/api/cards/'+token+'/audio')).status,404);assert.equal((await request('/api/cards/'+token+'/download')).status,404);assert.equal((await request('/api/jobs/'+jobId,{headers:{cookie:ownerCookie}})).status,200);
 });
 test('an owner can import an official MP3 without a download call, while invalid files stay private',async()=>{
  const creates=await Promise.all([post('/api/cards',{jobId,clipId:'fixture-clip'}),post('/api/cards',{jobId,clipId:'fixture-clip'})]);const t=creates[0].json().token;assert.equal(creates[1].json().token,t);assert.notEqual(t,token);

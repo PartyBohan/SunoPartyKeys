@@ -1,1 +1,1 @@
-export type MusicCard={token:string;title:string;scene:number;notes:{note:number;start:number;duration:number}[];duration:number;status:string;url:string;audioUrl?:string;coverUrl:string;creditsRemaining?:number;error?:string};
+export type MusicCard={token:string;title:string;scene:number;notes:{note:number;start:number;duration:number}[];duration:number;status:string;url:string;audioUrl?:string;downloadUrl?:string;coverUrl:string;creditsRemaining?:number;error?:string};
