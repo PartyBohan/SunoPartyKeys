@@ -1,6 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MUSIC_PRESETS,MAX_DIRECTION_CHARS,musicDirection,MAX_PROMPT_CHARS,buildMusicPrompt,musicPromptKey,restoreMusicDirection,accountUsage,KEYBOARD_NOTES,WHITE_KEYS,BLACK_KEYS} from '../dist-node/studio-test.mjs';
+import {canVisitStep,restoreStudioStep} from '../dist-node/studio-test.mjs';
+
+test('three-step navigation permits returning to melody and requires a real saved work for the result page',()=>{
+ assert.equal(canVisitStep(1,false,false),true);assert.equal(canVisitStep(2,false,false),false);assert.equal(canVisitStep(3,true,false),false);
+ assert.equal(canVisitStep(2,true,true),true);assert.equal(canVisitStep(3,true,true),true);
+ assert.equal(restoreStudioStep(3,true,{phase:'complete'}),3);
+ assert.equal(restoreStudioStep(3,true,null),1);
+ assert.equal(restoreStudioStep(2,true,{phase:'complete'}),2);
+ assert.equal(restoreStudioStep(2,false,null),1);
+ assert.equal(restoreStudioStep(1,true,{phase:'generating'}),3);
+});
 
 test('every visible production brief is complete, format-specific, distinct and fits the submitted provider field',()=>{
  const prompts=[];

@@ -1,5 +1,6 @@
 export default function StudioLight(){
  return <div className="world-background studio-light" aria-hidden="true">
+  <div className="light-tide tide-cool"/><div className="light-tide tide-warm"/>
   <div className="light-atmosphere"/>
   <svg className="light-refraction" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
    <defs>

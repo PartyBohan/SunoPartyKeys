@@ -1,0 +1,16 @@
+import {useEffect,useRef,useState} from 'react';
+import {ArrowUpRight,Download,LoaderCircle} from 'lucide-react';
+import type {MusicCard} from '@/lib/card-types';
+import type {Creation,Clip} from '@/lib/jobs';
+export default function SongDownload({job,clip,zh,initial,onReady}:{job:Creation;clip:Clip;zh:boolean;initial:MusicCard|null;onReady:(card:MusicCard)=>void}){
+ const [card,setCard]=useState(initial),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const active=useRef(true);
+ useEffect(()=>{active.current=true;return()=>{active.current=false;};},[]);
+ useEffect(()=>{if(initial?.status==='ready')setCard(initial);},[initial?.token,initial?.status]);
+ const say=(cn:string,en:string)=>zh?cn:en;
+ async function call(path:string,body:unknown){const r=await fetch('/api/cards'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const data=await r.json() as MusicCard;if(!r.ok)throw Error(data.error||say('歌曲文件暂未准备好，请重试。','The song file is not ready. Try again.'));return data as MusicCard;}
+ async function prepare(){if(busy)return;setBusy(true);setError('');try{let next=card||await call('',{jobId:job.id,clipId:clip.id});if(next.status!=='ready')next=await call('/'+next.token+'/prepare',{confirm:next.status==='requires_credit'});if(active.current){setCard(next);if(next.status==='ready')onReady(next);}}catch(e){if(active.current)setError((e as Error).message);}finally{if(active.current)setBusy(false);}}
+ function authorize(){try{localStorage.setItem('ocean.sharePending',JSON.stringify({jobId:job.id,clipId:clip.id,intent:'download'}));}catch{}location.assign('/api/auth/suno?download=1&site_origin='+encodeURIComponent(location.origin));}
+ const ready=card?.status==='ready';
+ return <div className="song-download"><p>{ready?say('完整歌曲已准备好，再次下载不会消耗 Suno 额度。','Your full song is saved. Downloading it again uses no Suno credits.'):card?.status==='requires_credit'?say(`Suno 导出需要 1 个下载额度${card.creditsRemaining!==undefined?`，当前剩余 ${card.creditsRemaining} 个`:''}。保存后可以反复下载。`,`Suno requires 1 download credit${card.creditsRemaining!==undefined?`; ${card.creditsRemaining} remaining`:''}. Once saved, you can download again.`):card?.status==='connection_required'?say('需要授权下载自己的歌曲，已有作品会保留。','Authorize downloads for your own songs. Your music stays saved.'):card?.status==='processing'?say('歌曲文件正在准备，稍后可以继续。','The song file is being prepared. Continue shortly.'):say('准备一份完整歌曲文件。若 Suno 需要下载额度，会先显示本次用量。','Prepare the full song file. Any Suno download credit cost is shown before you confirm.')}</p>{ready?<a className="primary-link" href={card.downloadUrl||`/api/cards/${card.token}/download`} download><Download size={16}/>{say('下载完整歌曲','Download full song')}</a>:card?.status==='connection_required'?<button className="primary-link" onClick={authorize}>{say('授权下载自己的歌曲','Authorize song downloads')}<ArrowUpRight size={15}/></button>:<button className="primary-link" disabled={busy} onClick={prepare}>{busy?<LoaderCircle className="spin" size={16}/>:<Download size={16}/>} {busy?say('正在准备…','Preparing…'):card?.status==='requires_credit'?say('使用 1 个下载额度','Use 1 download credit'):card?.status==='processing'?say('继续准备','Continue'):say('准备歌曲文件','Prepare song file')}</button>}{error&&<p role="alert">{error}</p>}</div>;
+}

@@ -40,6 +40,13 @@ export async function cardApi(req:Request):Promise<Response|null>{
  const u=new URL(req.url),parts=u.pathname.split('/').filter(Boolean);if(parts[0]!=='api'||parts[1]!=='cards')return null;
  try{
   if(req.method==='POST'){const origin=req.headers.get('origin');if(origin&&!['https://suno.popumusic.cn','https://suno.partykeys.ai',u.origin].includes(origin))throw new ApiError('Invalid request origin.',403);}
+  if(parts.length===2&&req.method==='GET'){
+   const job=await readJob(req,u.searchParams.get('jobId')||''),clipId=u.searchParams.get('clipId')||'';
+   if(!job.clips.some(c=>c.id===clipId&&c.status==='complete'))return json({card:null});
+   const rows=await storage.DB.prepare('SELECT document FROM ocean_cards WHERE owner=? AND job_id=? AND clip_id=? ORDER BY updated_at DESC LIMIT 1').bind(requestOwner(req),job.id,clipId).all();
+   const saved=rows.results[0]&&JSON.parse(String(rows.results[0].document)) as Card|undefined;
+   return json({card:saved&&!saved.revoked&&saved.status==='ready'?view(saved):null});
+  }
   if(parts.length===2&&req.method==='POST'){
    const b=await req.json() as Record<string,unknown>,job=await readJob(req,String(b.jobId||'')),clip=job.clips.find(x=>x.id===b.clipId&&x.status==='complete');if(!clip||job.provider!=='suno')throw new ApiError('请先选择已完成的 Suno 作品。');
    const rows=await storage.DB.prepare('SELECT document FROM ocean_cards WHERE owner=? AND job_id=? AND clip_id=? ORDER BY updated_at DESC LIMIT 1').bind(requestOwner(req),job.id,clip.id).all();const previous=rows.results[0]&&JSON.parse(String(rows.results[0].document)) as Card|undefined;

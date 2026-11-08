@@ -44,6 +44,13 @@ test('a provider quote precedes a charged export and concurrent clicks spend onc
  const results=await Promise.all([post('/api/cards/'+token+'/prepare',{confirm:true}),post('/api/cards/'+token+'/prepare',{confirm:true}),post('/api/cards/'+token+'/prepare',{},oldScope)]);assert.ok(results.some(r=>r.json().status==='ready'));assert.equal(spends,1);
  const before=calls;r=await post('/api/cards/'+token+'/prepare');assert.equal(r.json().status,'ready');assert.equal(calls,before);
 });
+test('the work page finds an owner’s already saved MP3 without creating a card or contacting Suno',async()=>{
+ const before=calls;
+ const lookup=await request(`/api/cards?jobId=${jobId}&clipId=fixture-clip`,{headers:{cookie:ownerCookie}});
+ assert.equal(lookup.status,200);assert.equal(lookup.json().card.downloadUrl,'/api/cards/'+token+'/download');assert.equal(calls,before);
+ const other=await request(`/api/cards?jobId=${jobId}&clipId=fixture-clip`);assert.equal(other.status,404);assert.equal(calls,before);
+ const missing=await request(`/api/cards?jobId=${jobId}&clipId=not-a-returned-clip`,{headers:{cookie:ownerCookie}});assert.equal(missing.status,200);assert.equal(missing.json().card,null);assert.equal(calls,before);
+});
 test('a recipient gets only local metadata and seekable MP3, with no login or provider request',async()=>{
  const before=calls,r=await request('/api/cards/'+token);assert.equal(r.status,200);assert.equal(r.headers['set-cookie'],undefined);const data=r.json();assert.equal(data.creditsRemaining,undefined);for(const secret of ['owner','jobId','clipId','temporary','access_token','suno.com'])assert.ok(!r.text().includes(secret));assert.equal(data.audioUrl,'/api/cards/'+token+'/audio');
  const range=await request(data.audioUrl,{headers:{range:'bytes=0-2'}});assert.equal(range.status,206);assert.equal(range.body.toString(),'ID3');assert.equal(range.headers['content-range'],'bytes 0-2/256');assert.equal(range.headers['content-type'],'audio/mpeg');
