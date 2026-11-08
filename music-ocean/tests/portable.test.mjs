@@ -78,5 +78,7 @@ after(async()=>{globalThis.fetch=realFetch;await new Promise(resolve=>server.clo
 test('skin backgrounds are served as JPEG for GET and HEAD, while product originals stay PNG',async()=>{
  const image=await request('/images/styles/neon-funk.jpg');assert.equal(image.status,200);assert.equal(image.headers['content-type'],'image/jpeg');assert.deepEqual([...image.body.subarray(0,3)],[255,216,255]);
  const head=await request('/images/styles/neon-funk.jpg',{method:'HEAD'});assert.equal(head.status,200);assert.equal(head.headers['content-type'],'image/jpeg');assert.equal(head.headers['content-length'],String(image.body.length));assert.equal(head.body.length,0);
+ const legacy=await request('/images/styles/library-neon-funk.png');assert.equal(legacy.status,200);assert.equal(legacy.headers['content-type'],'image/png');assert.deepEqual([...legacy.body.subarray(0,4)],[137,80,78,71]);
+ const legacyJpeg=await request('/images/styles/library-glitch-hook.jpg',{method:'HEAD'});assert.equal(legacyJpeg.status,200);assert.equal(legacyJpeg.headers['content-type'],'image/jpeg');
  const product=await request('/images/keyboard-black-angle.png',{method:'HEAD'});assert.equal(product.status,200);assert.equal(product.headers['content-type'],'image/png');
 });

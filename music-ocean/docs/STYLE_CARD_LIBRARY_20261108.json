@@ -1,0 +1,52 @@
+[
+  {
+    "preset": "neon-funk",
+    "official_skin_id": 31,
+    "official_name": "时尚达人",
+    "source": "https://cpfile.poputar.com/keyboardSkin/img/fd40cfd50500ae8ea33a0d6c84e8fb25.png",
+    "project_asset": "public/images/styles/library-neon-funk.png",
+    "sha256": "2fa4ede7653edfe3df3c58285f0cf129f788f61bed06b3fe0c04ba52df73063f",
+    "bytes": 254004,
+    "edits": "none; exact original artwork, including original perspective keyboard"
+  },
+  {
+    "preset": "glitch-hook",
+    "official_skin_id": 41,
+    "official_name": "典藏·赛博朋克",
+    "source": "https://cpfile.poputar.com/keyboardSkin/img/1001afd00cf168cd37902c9863658122.jpg",
+    "project_asset": "public/images/styles/library-glitch-hook.jpg",
+    "sha256": "ae0da7af152a4a82d4e6c661b38fed0066a193ed3db59733f9aa05d80edb5ca7",
+    "bytes": 262722,
+    "edits": "none; exact original artwork, including original perspective keyboard"
+  },
+  {
+    "preset": "velvet-offbeat",
+    "official_skin_id": 23,
+    "official_name": "莫兰迪",
+    "source": "https://cpfile.poputar.com/keyboardSkin/img/f9593d70ac704d7e9083b0bdd9f4a446.png",
+    "project_asset": "public/images/styles/library-velvet-offbeat.png",
+    "sha256": "fc4db6eaa3b52b3868b7b98c1f5e5add08fae77c7f3c86b2479a908fc7f98cc1",
+    "bytes": 216457,
+    "edits": "none; exact original artwork, including original perspective keyboard"
+  },
+  {
+    "preset": "brass-bounce",
+    "official_skin_id": 57,
+    "official_name": "烟花· 炽焰星云",
+    "source": "https://cpfile.poputar.com/keyboardSkin/img/8329869d6b42ca60dedbcd6ac117e2b9.jpg",
+    "project_asset": "public/images/styles/library-brass-bounce.jpg",
+    "sha256": "2d4d5d1fbfa171a490d93e47fe360969c626efd30a789cb1c8d734e1f8e82ab7",
+    "bytes": 43160,
+    "edits": "none; exact original artwork, including original perspective keyboard"
+  },
+  {
+    "preset": "chrome-disco",
+    "official_skin_id": 39,
+    "official_name": "典藏·包豪斯",
+    "source": "https://cpfile.poputar.com/keyboardSkin/img/bd320e7dac487f49573373d5c4e56d95.jpg",
+    "project_asset": "public/images/styles/library-chrome-disco.jpg",
+    "sha256": "6d88720d911e0fc8a0b6ad417017d61ccee72861b57d350df66d700f9cf54b8d",
+    "bytes": 179117,
+    "edits": "none; exact original artwork, including original perspective keyboard"
+  }
+]
