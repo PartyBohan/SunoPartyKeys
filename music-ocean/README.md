@@ -19,7 +19,15 @@ Server configuration, supplied only through runtime secret settings:
 - `PUBLIC_ORIGIN`: the actual website origin.
 - `SUNO_CLIENT_ID`: public OAuth client ID registered with Suno. The web client registration and exact callback URLs require owner approval. Desktop Codex credentials are not copied into this website.
 
-Suno web OAuth uses authorization code + PKCE S256, a ten-minute encrypted state/verifier cookie and refresh-token rotation. The only callback is `/api/auth/callback` on an approved origin. Requested scopes: `api:v0 credits:spend library:read offline_access profile:read`.
+Suno web OAuth uses authorization code + PKCE S256, a ten-minute encrypted state/verifier cookie and refresh-token rotation. The only callback is `/api/auth/callback` on an approved origin. Normal scopes: `api:v0 credits:spend library:read offline_access profile:read`. Saving an official MP3 to a domestic music card separately asks the creator for the `download` scope.
+
+## Playable domestic music cards
+
+On the portable Chinese site, Share creates a compact `/s/<unpredictable-token>` music card. It contains Xiaoshigan cover art, the original note motif, a native audio player, seeking and a share button. The creator exports the selected completed song with Suno's official `audio-download` tool. A `requires_credit` answer is shown before the creator can confirm the one-download-credit export. Reusing a prepared card never calls Suno or spends another credit. An already officially downloaded MP3 can also be imported.
+
+The MP3 and PNG cover stay on the Aliyun persistent volume. Card recipients need no account and make no Suno request. Only the selected song and card details are accessible through the unlisted link; original jobs, provider credentials and temporary download URLs remain private. The owner can stop the card's sharing. QR posters point to the domestic card instead of suno.com.
+
+Card deep links include server-rendered title, description, PNG cover and audio metadata. This prepares link previews, but does not claim WeChat's native in-chat music bubble: that requires a separate verified WeChat application integration and real WeChat validation. The H5 card page does not record or extract Suno's protected player stream.
 
 ## Other API contract
 

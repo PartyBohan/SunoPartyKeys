@@ -4,7 +4,7 @@ import {jobRead,jobWrite} from './jobs';
 const API='https://api.suno.com/mcp';
 const OAUTH='https://studio-api-prod.suno.com/api/v2/external/oauth';
 const COOKIE='ocean_suno';
-type Session={access_token:string;refresh_token?:string;expires_at:number;client_id?:string;user_id?:string};
+type Session={access_token:string;refresh_token?:string;expires_at:number;client_id?:string;user_id?:string;download?:boolean};
 type Custom={url:string;key:string;statusUrl:string;model:string};
 export class ApiError extends Error {constructor(message:string,public status=400,public code='request_failed'){super(message);}}
 const config=runtimeValue;
@@ -34,10 +34,11 @@ async function oauthToken(body:Record<string,string>){
   const data=await readJson(res);if(!res.ok||!data.access_token)throw new ApiError('Please connect your Suno account again.',401,'connection_expired');
   return {...data,expires_at:Date.now()+Number(data.expires_in||900)*1000} as Session;
 }
-async function session(req:Request){let s=await unseal<Session>(cookieValue(req,COOKIE));if(!s)throw new ApiError('Connect your Suno account in Settings to continue.',401,'suno_not_connected');let updated=false;
+export async function sunoSession(req:Request){let s=await unseal<Session>(cookieValue(req,COOKIE));if(!s)throw new ApiError('Connect your Suno account in Settings to continue.',401,'suno_not_connected');let updated=false;
   if(s.expires_at<Date.now()+45000){if(!s.refresh_token)throw new ApiError('Please reconnect Suno.',401,'connection_expired');s={...s,...await oauthToken({grant_type:'refresh_token',refresh_token:s.refresh_token,client_id:s.client_id||config('SUNO_CLIENT_ID')})};updated=true;}
   return {value:s,updated};
 }
+export async function setSessionCookie(response:Response,s:Session){response.headers.append('Set-Cookie',cookie(COOKIE,await seal(s)));}
 async function rpcResponse(res:Response){
   const text=await res.text();if(!res.ok)throw new ApiError(`Suno HTTP ${res.status}`,res.status,'suno_request_failed');
   if(res.headers.get('content-type')?.includes('text/event-stream')){
@@ -53,7 +54,7 @@ export async function sunoCall(token:string,tool:string,args:unknown={}){
   const sid=init.headers.get('mcp-session-id');if(sid)headers['Mcp-Session-Id']=sid;
   headers['MCP-Protocol-Version']=initialized.result?.protocolVersion||'2024-11-05';
   await sunoFetch(API,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',method:'notifications/initialized'}),signal:AbortSignal.timeout(10000)});
-  const res=await sunoFetch(API,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/call',params:{name:tool,arguments:args}}),signal:AbortSignal.timeout(tool==='audio-wait'?60000:35000)});
+  const res=await sunoFetch(API,{method:'POST',headers,body:JSON.stringify({jsonrpc:'2.0',id:2,method:'tools/call',params:{name:tool,arguments:args}}),signal:AbortSignal.timeout(['audio-wait','audio-download'].includes(tool)?65000:35000)});
   const payload=await rpcResponse(res);if(payload.error)throw new ApiError(payload.error.message||'Suno could not complete this request.',502);
   const result=payload.result;
   let data=result?.structuredContent;
@@ -95,16 +96,17 @@ export async function api(req:Request):Promise<Response>{
     if(path==='auth/suno'&&req.method==='GET'){
       if(!clientId(req))throw new ApiError('Suno account connection is being configured.',503,'service_not_configured');
       const verifier=b64(crypto.getRandomValues(new Uint8Array(32))),state=b64(crypto.getRandomValues(new Uint8Array(24))),challenge=b64(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier))));
-      const redirect=`${origin(req)}/api/auth/callback`,u=new URL(`${OAUTH}/authorize/`);
-      u.search=new URLSearchParams({client_id:clientId(req),redirect_uri:redirect,state,response_type:'code',code_challenge:challenge,code_challenge_method:'S256',resource:API,scope:'api:v0 credits:spend library:read offline_access profile:read'}).toString();
-      return new Response(null,{status:302,headers:{Location:u.href,'Set-Cookie':cookie('ocean_oauth',await seal({verifier,state,redirect,client_id:clientId(req),expires:Date.now()+600000}),600),'Cache-Control':'no-store'}});
+      const redirect=`${origin(req)}/api/auth/callback`,u=new URL(`${OAUTH}/authorize/`),download=new URL(req.url).searchParams.get('download')==='1';
+      u.search=new URLSearchParams({client_id:clientId(req),redirect_uri:redirect,state,response_type:'code',code_challenge:challenge,code_challenge_method:'S256',resource:API,scope:'api:v0 credits:spend library:read offline_access profile:read'+(download?' download':'')}).toString();
+      return new Response(null,{status:302,headers:{Location:u.href,'Set-Cookie':cookie('ocean_oauth',await seal({verifier,state,redirect,download,client_id:clientId(req),expires:Date.now()+600000}),600),'Cache-Control':'no-store'}});
     }
     if(path==='auth/callback'){
-      const u=new URL(req.url),stored=await unseal<{verifier:string;state:string;redirect:string;expires:number;client_id?:string}>(cookieValue(req,'ocean_oauth'));
+      const u=new URL(req.url),stored=await unseal<{verifier:string;state:string;redirect:string;expires:number;client_id?:string;download?:boolean}>(cookieValue(req,'ocean_oauth'));
       if(u.searchParams.get('error'))return new Response(null,{status:302,headers:{Location:`${origin(req)}/?connection=cancelled`,'Set-Cookie':cookie('ocean_oauth','',0)}});
       if(!stored||stored.expires<Date.now()||stored.state!==u.searchParams.get('state')||!u.searchParams.get('code'))throw new ApiError('The connection link expired. Please try again in Settings.',400,'oauth_state_mismatch');
       const s=await oauthToken({grant_type:'authorization_code',code:u.searchParams.get('code')!,redirect_uri:stored.redirect,code_verifier:stored.verifier,client_id:stored.client_id||config('SUNO_CLIENT_ID'),resource:API});
       s.client_id=stored.client_id||config('SUNO_CLIENT_ID');
+      s.download=stored.download===true;
       if(config('OCEAN_AUTH_MODE')==='suno'){const profile=await sunoCall(s.access_token,'account-me');const id=accountIdentity(profile);if(id)s.user_id=id;else delete s.user_id;}
       const headers=new Headers({Location:`${new URL(stored.redirect).origin}/?connection=success`,'Cache-Control':'no-store'});headers.append('Set-Cookie',cookie(COOKIE,await seal(s)));headers.append('Set-Cookie',cookie('ocean_oauth','',0));return new Response(null,{status:302,headers});
     }
@@ -124,7 +126,7 @@ export async function api(req:Request):Promise<Response>{
     const provider=new URL(req.url).searchParams.get('provider')||'suno';
     let custom:Custom|null=null;let token='';
     if(provider==='custom'){custom=await unseal<Custom>(cookieValue(req,'ocean_custom'));if(!custom)throw new ApiError('Connect another music service in Settings.',401,'custom_not_connected');}
-    else {const s=await session(req);token=s.value.access_token;if(s.updated)updatedSession=s.value;}
+    else {const s=await sunoSession(req);token=s.value.access_token;if(s.updated)updatedSession=s.value;}
     let result:unknown;
     const written=await jobWrite(req,path,{token,custom,call:sunoCall,normalize:normalizeClip,publicHttps,fetch:providerFetch,uploadFetch:sunoFetch});if(written){if(updatedSession)written.headers.append('Set-Cookie',cookie(COOKIE,await seal(updatedSession)));return written;}
     if(path==='account')result=await sunoCall(token,'account-usage');

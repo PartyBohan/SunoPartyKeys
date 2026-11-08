@@ -6,6 +6,7 @@ import {api,seal,unseal,sunoOwner,setProviderFetch,setSunoFetch} from '../lib/su
 import {storage} from './cloudflare-node';
 import {publicFetch} from './public-fetch';
 import {bridgeFetch} from './suno-bridge';
+import {cardApi,cardPage} from './cards';
 
 setProviderFetch(publicFetch);
 setSunoFetch(bridgeFetch);
@@ -19,6 +20,7 @@ export const server=http.createServer(async(incoming,outgoing)=>{
   const host=incoming.headers.host||'',hostOrigin=`https://${host}`;
   if(process.env.NODE_ENV==='production'&&!approved.includes(hostOrigin)){outgoing.writeHead(400);outgoing.end('Unknown application hostname');return;}
   const url=new URL(incoming.url||'/',hostOrigin);
+  if(url.pathname.startsWith('/s/')){if(!['GET','HEAD'].includes(incoming.method||'')){outgoing.writeHead(405);outgoing.end();return;}const response=await cardPage(new Request(url),await readFile(resolve(assets,'index.html'),'utf8'));outgoing.statusCode=response.status;for(const [key,value]of response.headers)outgoing.setHeader(key,value);outgoing.end(incoming.method==='HEAD'?undefined:await response.text());return;}
   if(url.pathname.startsWith('/api/')){
    if(!['GET','HEAD','POST'].includes(incoming.method||'')){outgoing.writeHead(405);outgoing.end();return;}
    const chunks:Buffer[]=[];let length=0;
@@ -27,14 +29,14 @@ export const server=http.createServer(async(incoming,outgoing)=>{
    const body=chunks.length?new Uint8Array(Buffer.concat(chunks)):undefined;
    let request=new Request(url,{method:incoming.method,headers,body:['GET','HEAD'].includes(incoming.method||'')?undefined:body});
    let newIdentity:string|undefined,deviceOwner:string|undefined;
-   if(url.pathname!=='/api/health'){
+   if(url.pathname!=='/api/health'&&!(['GET','HEAD'].includes(incoming.method||'')&&url.pathname.startsWith('/api/cards/'))){
     let identity=await unseal<{id:string}>(cookieValue(incoming.headers.cookie,'ocean_identity'));
     if(!identity?.id||!/^device:[a-f0-9-]{36}$/.test(identity.id)){identity={id:'device:'+crypto.randomUUID()};newIdentity=await seal(identity);}
     deviceOwner=identity.id;
     headers.set('oai-authenticated-user-id',await sunoOwner(request)||identity.id);
     request=new Request(url,{method:incoming.method,headers,body:['GET','HEAD'].includes(incoming.method||'')?undefined:body});
    }
-   const response=await api(request);
+   const response=await cardApi(request)||await api(request);
    if(deviceOwner&&url.pathname==='/api/auth/callback'&&response.status===302){
     const value=response.headers.getSetCookie().find(s=>s.startsWith('ocean_suno='))?.split(';')[0].slice('ocean_suno='.length);
     const account=await unseal<{user_id?:string}>(value);

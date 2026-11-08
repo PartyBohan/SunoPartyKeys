@@ -33,7 +33,7 @@ Do not claim a deployment based only on uploaded files: this backend requires a 
 
 ## Suno connection across regions
 
-The selected Hangzhou host timed out when connecting directly to Suno. The overseas function accepts only short-lived Ed25519-signed requests from the application's Aliyun server. It allows the fixed Suno MCP/token endpoints and validated HTTPS upload destinations; it never accepts an arbitrary proxy target. Uploads also use pinned public DNS addresses. Request bodies and upstream credentials are covered by the signature. Do not log authorization headers.
+The selected Hangzhou host timed out when connecting directly to Suno. The overseas function accepts only short-lived Ed25519-signed requests from the application's Aliyun server. It allows the fixed Suno MCP/token endpoints, validated HTTPS upload destinations, and GETs to official Suno/S3 download hosts; it never accepts an arbitrary proxy target. Uploads/downloads also use pinned public DNS addresses. Each download redirect is validated again. Request bodies and upstream credentials are covered by the signature. Do not log authorization headers or signed download URLs.
 
 On Aliyun, run `node portable/configure-bridge.mjs /absolute/private/runtime.env`. The private signing key stays on Aliyun. The helper prints only `OCEAN_BRIDGE_PUBLIC_KEY`, which must be set as a server environment variable in the new Vercel project before redeploying. Restart only this application's container to load its private configuration. Verify the actual Aliyun → custom Vercel domain → Suno connection before claiming production readiness. MIDI reference WAVs use 32 kHz mono PCM so a full 60-second performance stays below Vercel's request size limit.
 
@@ -48,10 +48,16 @@ Public client ID: `dcr-XaBOQ2-iypLzQ6NOXFeSRQ`. Registered callbacks are exactly
 - `https://suno.popumusic.cn/api/auth/callback`
 - `https://suno.partykeys.ai/api/auth/callback`
 
-Every authorization request explicitly asks for `api:v0 credits:spend library:read offline_access profile:read`. Suno's registration response reports a wider default capability set; it is not treated as permission to request extra scopes. This app does not request download, library write or search scopes.
+Normal authorization explicitly asks for `api:v0 credits:spend library:read offline_access profile:read`. Only the music-card action `/api/auth/suno?download=1` adds `download`, after the creator chooses to authorize saving their own songs. Library write/search are not requested. Suno's wider registration capabilities are not treated as already granted scopes. A charged download also requires a separate, explicit in-product confirmation of a `requires_credit` quote.
 
 The existing Sites publication remains a separate rollback copy. Existing Sites D1/R2 records have not yet been exported to the new persistent store. Do not claim historical library migration until that export/import is verified.
 
+## Domestic share storage
+
+Startup adds the `ocean_cards` table and a partial unique index for one active card per owner/job/clip without modifying creation records. Prepared MP3/PNG objects live in the private `card-audio/` data subdirectory, outside releases. Keep this directory and the database together in backups. Only the unguessable, ready, non-revoked card routes expose those objects, with HTTP Range support for MP3 seeking. Neither directory nor the database belongs in Git or a public release archive.
+
+The current export path limits MP3s to 4.2 MB for the Vercel bridge response limit. It suits the product's 90-second songs. A failed or in-progress export is never presented as a ready card. Public card requests never call a generation or download tool. `/s/:token` and `/api/cards` exact/wildcard routes must forward to Aliyun on Vercel. Deploy the updated bridge before testing an overseas export.
+
 ## Verification
 
-TypeScript, the static build and Node bundle pass. The 26 tests include real SQLite statements, original WAV bytes, range reads, HTTP owner isolation, signed device-to-account migration, matching OAuth redirects, account profile envelopes, successful public-profile-only authorization with browser isolation, safe idempotency, rejection of internal provider addresses and a real HTTP bridge with signature, body, expiry, destination and size checks. Tests mock Suno and do not spend credits. Real account consent, production host verification and old-library migration are separate deployment checks.
+TypeScript, the static build and Node bundle pass. The 33 tests include real SQLite statements, original WAV bytes, range reads, HTTP owner isolation, signed device-to-account migration, matching OAuth redirects, account profile envelopes, successful public-profile-only authorization with browser isolation, safe idempotency, rejection of internal provider addresses, and signed bridge requests. Card tests additionally cover opt-in download authorization, the credit quote/confirmation boundary, concurrency, anonymous playback, escaped metadata, invalid imports and revocation. Tests mock Suno and do not spend credits. Real account consent, production host verification, WeChat behavior and old-library migration are separate deployment checks.

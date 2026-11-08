@@ -6,11 +6,12 @@ const MCP='https://api.suno.com/mcp';
 const TOKEN='https://studio-api-prod.suno.com/api/v2/external/oauth/token/';
 const UPLOAD_HOSTS=['.amazonaws.com','.cloudflarestorage.com','.suno.com','.suno.ai','.googleapis.com'];
 const LIMIT=4_200_000;
+export function isSunoDownloadUrl(value:string){try{const u=new URL(value);return u.protocol==='https:'&&!u.username&&!u.password&&(!u.port||u.port==='443')&&['.suno.com','.suno.ai','.amazonaws.com'].some(s=>u.hostname.endsWith(s));}catch{return false;}}
 type Claim={v:1;iat:number;exp:number;nonce:string;url:string;method:string;headers:Record<string,string>;hash:string};
 const digest=(b:Uint8Array)=>createHash('sha256').update(b).digest('base64url');
 function trusted(url:string,method:string){
  const u=new URL(url);
- return method==='POST'&&(url===MCP||url===TOKEN)||method==='PUT'&&u.protocol==='https:'&&!u.username&&!u.password&&(!u.port||u.port==='443')&&UPLOAD_HOSTS.some(s=>u.hostname.endsWith(s));
+ return method==='POST'&&(url===MCP||url===TOKEN)||method==='PUT'&&u.protocol==='https:'&&!u.username&&!u.password&&(!u.port||u.port==='443')&&UPLOAD_HOSTS.some(s=>u.hostname.endsWith(s))||method==='GET'&&isSunoDownloadUrl(url);
 }
 
 // Only the Aliyun server has the signing key. Vercel receives its public verification key.
@@ -47,9 +48,9 @@ export function createBridgeHandler(options:{publicKey?:()=>string|undefined;fet
    const chunks:Buffer[]=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>LIMIT){res.writeHead(413);res.end('Melody is too large');return;}chunks.push(chunk);}
    const body=Buffer.concat(chunks);if(digest(body)!==c.hash){res.writeHead(403);res.end('Invalid connection request');return;}
    const headers=new Headers();for(const [name,value] of Object.entries(c.headers||{}))if(['content-type','accept','authorization','mcp-session-id','mcp-protocol-version','user-agent'].includes(name)&&typeof value==='string')headers.set(name,value);
-   const call=c.method==='PUT'?(options.uploadFetch||publicFetch):(options.fetch||fetch);
-   const upstream=await call(c.url,{method:c.method,headers,body,redirect:'error',signal:AbortSignal.timeout(50000)});
-   for(const name of ['content-type','mcp-session-id','retry-after','www-authenticate']){const value=upstream.headers.get(name);if(value)res.setHeader(name,value);}
+   const call=c.method==='PUT'||c.method==='GET'?(options.uploadFetch||publicFetch):(options.fetch||fetch);
+   const upstream=await call(c.url,{method:c.method,headers,body:c.method==='GET'?undefined:body,redirect:'manual',signal:AbortSignal.timeout(55000)});
+   for(const name of ['content-type','mcp-session-id','retry-after','www-authenticate','location']){const value=upstream.headers.get(name);if(value)res.setHeader(name,value);}
    res.statusCode=upstream.status;res.end(Buffer.from(await upstream.arrayBuffer()));
   }catch{if(!res.headersSent)res.writeHead(502,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'The Suno connection is temporarily unavailable.'}));}
  };

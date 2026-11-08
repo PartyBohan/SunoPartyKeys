@@ -7,7 +7,7 @@ import {createBridgeHandler,bridgeFetch} from '../dist-node/bridge-test.mjs';
 test('overseas connection verifies the server signature and body before contacting Suno',async()=>{
  const pair=generateKeyPairSync('ed25519'),publicKey=pair.publicKey.export({type:'spki',format:'der'}).toString('base64'),privateKey=pair.privateKey.export({type:'pkcs8',format:'der'}).toString('base64');
  let calls=[];
- const upstream=async(url,init)=>{calls.push({url,method:init.method,headers:new Headers(init.headers),body:Buffer.from(init.body).toString()});return new Response('{"ok":true}',{headers:{'Content-Type':'application/json','Mcp-Session-Id':'verified-session'}});};
+ const upstream=async(url,init)=>{calls.push({url,method:init.method,headers:new Headers(init.headers),body:Buffer.from(init.body||'').toString()});return new Response('{"ok":true}',{headers:{'Content-Type':'application/json','Mcp-Session-Id':'verified-session'}});};
  const server=http.createServer(createBridgeHandler({publicKey:()=>publicKey,fetch:upstream,uploadFetch:upstream}));
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const local=`http://127.0.0.1:${server.address().port}`,nativeFetch=globalThis.fetch;
@@ -30,6 +30,8 @@ test('overseas connection verifies the server signature and body before contacti
   response=await bridgeFetch('https://suno-uploads.s3.amazonaws.com/melody?signature=test',{method:'PUT',headers:{'Content-Type':'audio/wav'},body:Buffer.from('RIFFtest')});assert.equal(response.status,200);assert.equal(calls[1].method,'PUT');assert.equal(calls[1].body,'RIFFtest');
   await assert.rejects(()=>bridgeFetch('https://api.suno.com/mcp',{method:'POST',body:Buffer.alloc(4_200_001)}),e=>e.status===413);assert.equal(calls.length,2);
   response=await nativeFetch(local,{method:'POST',headers:{Authorization:signed()},body:Buffer.alloc(4_200_001)});assert.equal(response.status,413);assert.equal(calls.length,2);
+  response=await bridgeFetch('https://cdn1.suno.ai/official-download.mp3?signature=test',{method:'GET'});assert.equal(response.status,200);assert.equal(calls[2].method,'GET');assert.equal(calls[2].body,'');
+  for(const url of ['https://cdn1.suno.ai.evil.example/x','https://169.254.169.254/x','http://cdn1.suno.ai/x'])await assert.rejects(()=>bridgeFetch(url,{method:'GET'}),/Unsupported Suno/);assert.equal(calls.length,3);
  }finally{
   globalThis.fetch=nativeFetch;
   if(previous.url===undefined)delete process.env.OCEAN_SUNO_BRIDGE_URL;else process.env.OCEAN_SUNO_BRIDGE_URL=previous.url;

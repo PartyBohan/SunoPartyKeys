@@ -4,6 +4,9 @@
   "outputDirectory": "dist-web",
   "functions": {"api/suno-bridge.ts":{"maxDuration":60}},
   "rewrites": [
+    {"source":"/s/:token","destination":"https://suno.popumusic.cn/s/:token"},
+    {"source":"/api/cards","destination":"https://suno.popumusic.cn/api/cards"},
+    {"source":"/api/cards/:path*","destination":"https://suno.popumusic.cn/api/cards/:path*"},
     {"source":"/api/auth/:path*","destination":"https://suno.popumusic.cn/api/auth/:path*"},
     {"source":"/api/providers","destination":"https://suno.popumusic.cn/api/providers"},
     {"source":"/api/providers/:path*","destination":"https://suno.popumusic.cn/api/providers/:path*"},

@@ -9,13 +9,16 @@ export function createStorage(directory:string){
  sqlite.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
  CREATE TABLE IF NOT EXISTS ocean_creations(id TEXT PRIMARY KEY NOT NULL,owner TEXT NOT NULL,request_key TEXT NOT NULL,document TEXT NOT NULL,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
  CREATE INDEX IF NOT EXISTS ocean_owner_created ON ocean_creations(owner,created_at);`);
+ sqlite.exec(`CREATE TABLE IF NOT EXISTS ocean_cards(token TEXT PRIMARY KEY NOT NULL,owner TEXT NOT NULL,job_id TEXT NOT NULL,clip_id TEXT NOT NULL,document TEXT NOT NULL,updated_at INTEGER NOT NULL);
+ CREATE INDEX IF NOT EXISTS ocean_cards_owner_clip ON ocean_cards(owner,job_id,clip_id);
+ CREATE UNIQUE INDEX IF NOT EXISTS ocean_cards_one_active ON ocean_cards(owner,job_id,clip_id) WHERE json_extract(document,'$.revoked') IS NOT 1;`);
  const DB={prepare(sql:string){const prepared=sqlite.prepare(sql);return {bind(...values:any[]){return {
   async first(){return prepared.get(...values)||null;},
   async all(){return {results:prepared.all(...values)};},
   async run(){return {meta:{changes:Number(prepared.run(...values).changes)}};},
  };}};}};
- const objects=resolve(root,'originals');mkdirSync(objects,{recursive:true,mode:0o700});
- function objectPath(key:string){if(!key.startsWith('originals/')||key.includes('\\')||key.split('/').includes('..'))throw new Error('Invalid object key');const path=resolve(root,key);if(!path.startsWith(objects+sep))throw new Error('Invalid object key');return path;}
+ for(const dir of ['originals','card-audio'])mkdirSync(resolve(root,dir),{recursive:true,mode:0o700});
+ function objectPath(key:string){const prefix=['originals/','card-audio/'].find(p=>key.startsWith(p));if(!prefix||key.includes('\\')||key.split('/').includes('..'))throw new Error('Invalid object key');const path=resolve(root,key);if(!path.startsWith(resolve(root,prefix)+sep))throw new Error('Invalid object key');return path;}
  const BUCKET={
   async put(key:string,value:ArrayBuffer|Uint8Array){const path=objectPath(key);await mkdir(dirname(path),{recursive:true,mode:0o700});const temp=path+'.'+crypto.randomUUID()+'.tmp';await writeFile(temp,new Uint8Array(value),{mode:0o600});await rename(temp,path);},
   async get(key:string,options?:{range?:Headers}){const path=objectPath(key);let size:number;try{size=(await stat(path)).size;}catch(e){if((e as NodeJS.ErrnoException).code==='ENOENT')return null;throw e;}
