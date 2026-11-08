@@ -65,7 +65,7 @@ export async function jobWrite(req:Request,path:string,ctx:Context):Promise<Resp
    }
    if(['generation_needed','submitting'].includes(job.phase)){
     job.phase='submitting';job.error=undefined;await save(owner,job);
-    const raw=job.instrumental?await ctx.call(ctx.token,'audio-covers-create',{id:job.sourceId,style:job.prompt,duration:90,idempotency_key:job.requestId}):await ctx.call(ctx.token,'audio-create',{description:`Create a complete song with warm Mandarin vocals from ${job.title}. Preserve the recognizable main melody. ${job.prompt}`,reference_audio_ids:[job.sourceId],instrumental:false,duration:90,duration_strict:false,title:job.title,idempotency_key:job.requestId});
+    const raw=job.instrumental?await ctx.call(ctx.token,'audio-covers-create',{id:job.sourceId,style:job.prompt,duration:90,idempotency_key:job.requestId}):await ctx.call(ctx.token,'audio-create',{description:job.prompt,reference_audio_ids:[job.sourceId],instrumental:false,duration:90,duration_strict:false,title:job.title,idempotency_key:job.requestId});
     const normalized=ctx.normalize(raw);if(!normalized.clip_ids.length)throw fail('Suno did not return a creation ID. The request key is preserved for safe recovery.',502,'missing_creation_id');job.clipIds=normalized.clip_ids;job.clips=normalized.clips;job.phase='generating';await save(owner,job);return json(view(job));
    }
    if(job.phase==='generating'){

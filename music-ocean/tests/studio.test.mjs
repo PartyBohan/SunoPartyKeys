@@ -1,6 +1,46 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MUSIC_PRESETS,MAX_DIRECTION_CHARS,musicDirection,accountUsage,KEYBOARD_NOTES,WHITE_KEYS,BLACK_KEYS} from '../dist-node/studio-test.mjs';
+import {MUSIC_PRESETS,MAX_DIRECTION_CHARS,musicDirection,MAX_PROMPT_CHARS,buildMusicPrompt,musicPromptKey,restoreMusicDirection,accountUsage,KEYBOARD_NOTES,WHITE_KEYS,BLACK_KEYS} from '../dist-node/studio-test.mjs';
+
+test('every visible production brief is complete, format-specific, distinct and fits the submitted provider field',()=>{
+ const prompts=[];
+ for(let i=0;i<5;i++)for(const instrumental of [true,false]){
+  const prompt=buildMusicPrompt(i,instrumental);prompts.push(prompt);
+  assert.ok(prompt.length<MAX_PROMPT_CHARS);
+  for(const section of ['Style','Instruments','Harmony','Arrangement','Production','Melody','Vocals'])assert.match(prompt,new RegExp('(?:^|\\n)'+section+': '));
+  assert.match(prompt,new RegExp(String(MUSIC_PRESETS[i].bpm)+' BPM'));
+  assert.equal(prompt.includes('instrumental only'),instrumental);
+  assert.equal(prompt.includes('rhythmic lead'),!instrumental);
+ }
+ assert.equal(new Set(prompts).size,10);
+});
+test('edited briefs survive reload independently for each style and format, including an intentionally empty draft',()=>{
+ const edits={[musicPromptKey(0,true)]:'', [musicPromptKey(2,false)]:'My exact\nproduction brief.',unknown:'ignored'};
+ const result=restoreMusicDirection({version:3,preset:'chrome-disco',instrumental:false,prompts:edits});
+ assert.equal(result.style,2);assert.equal(result.instrumental,false);
+ assert.deepEqual(result.edits,{[musicPromptKey(0,true)]:'',[musicPromptKey(2,false)]:'My exact\nproduction brief.'});
+ assert.equal(restoreMusicDirection({version:3,prompts:{[musicPromptKey(1,true)]:'x'.repeat(2000)}}).edits[musicPromptKey(1,true)].length,1000);
+});
+test('Chinese presets contain Chinese only, English presets stay English, and edits never leak across languages',()=>{
+ for(let i=0;i<5;i++)for(const format of [true,false]){
+  const cn=buildMusicPrompt(i,format,'zh'),en=buildMusicPrompt(i,format,'en');
+  assert.doesNotMatch(cn,/[a-z]/i);assert.doesNotMatch(en,/[\u3400-\u9fff]/);
+  for(const section of ['风格','配器','和声','段落','制作','旋律','人声'])assert.ok(cn.includes(section+'：'));
+  assert.ok(cn.length<MAX_PROMPT_CHARS);assert.equal(cn.includes('中文演唱'),!format);
+ }
+ const cnKey=musicPromptKey(0,true,'zh'),enKey=musicPromptKey(0,true,'en');
+ const restored=restoreMusicDirection({version:3,prompts:{[cnKey]:'我的中文制作说明',[enKey]:'My English brief'}});
+ assert.equal(restored.edits[cnKey],'我的中文制作说明');assert.equal(restored.edits[enKey],'My English brief');
+ const migrated=restoreMusicDirection({preset:'neon-funk',prompt:'开场就是贝斯钩子'});
+ assert.doesNotMatch(migrated.edits[cnKey],/[a-z]/i);assert.match(migrated.edits[cnKey],/开场就是贝斯钩子/);
+});
+test('legacy descriptions migrate with their user direction intact and malformed storage has safe defaults',()=>{
+ const result=restoreMusicDirection({preset:'glitch-hook',prompt:'Keep my brass answer.',instrumental:false},'zh');
+ assert.equal(result.style,3);assert.equal(result.instrumental,false);
+ assert.match(result.edits[musicPromptKey(3,false)],/Keep my brass answer\./);
+ assert.ok(result.edits[musicPromptKey(3,false)].length<=MAX_PROMPT_CHARS);
+ assert.deepEqual(restoreMusicDirection(null),{style:0,instrumental:true,edits:{}});
+});
 
 test('all five directions preserve the MIDI motif and a full user description within the provider limit',()=>{
  assert.equal(MUSIC_PRESETS.length,5);
