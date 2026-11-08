@@ -74,3 +74,9 @@ test('public-profile-only OAuth succeeds while web history stays isolated by sig
 test('unknown cross-origin writes fail and never reach a music provider',async()=>{const before=providerCalls;const response=await request('/api/providers/custom',{method:'POST',headers:{origin:'https://untrusted.example','content-type':'application/json'},body:'{}'});assert.equal(response.status,403);assert.equal(providerCalls,before);});
 test('custom providers cannot resolve to internal or metadata addresses',async()=>{for(const address of ['127.0.0.1','10.1.2.3','169.254.169.254','172.16.0.1','192.168.1.1','198.18.0.1','::1','fe80::1','fd00::1','::ffff:127.0.0.1'])assert.equal(publicAddress(address),false,address);for(const address of ['1.1.1.1','8.8.8.8','2606:4700:4700::1111'])assert.equal(publicAddress(address),true,address);await assert.rejects(()=>publicFetch('https://127.0.0.1/'),/public Internet/);});
 after(async()=>{globalThis.fetch=realFetch;await new Promise(resolve=>server.close(resolve));storage.close();await rm(directory,{recursive:true,force:true});});
+
+test('skin backgrounds are served as JPEG for GET and HEAD, while product originals stay PNG',async()=>{
+ const image=await request('/images/styles/neon-funk.jpg');assert.equal(image.status,200);assert.equal(image.headers['content-type'],'image/jpeg');assert.deepEqual([...image.body.subarray(0,3)],[255,216,255]);
+ const head=await request('/images/styles/neon-funk.jpg',{method:'HEAD'});assert.equal(head.status,200);assert.equal(head.headers['content-type'],'image/jpeg');assert.equal(head.headers['content-length'],String(image.body.length));assert.equal(head.body.length,0);
+ const product=await request('/images/keyboard-black-angle.png',{method:'HEAD'});assert.equal(product.status,200);assert.equal(product.headers['content-type'],'image/png');
+});

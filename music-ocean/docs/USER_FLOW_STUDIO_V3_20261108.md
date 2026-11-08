@@ -34,7 +34,7 @@ Evidence outside the source repository: `outputs/music-ocean-style-v3/home-se-la
 
 ## Validation and code review
 
-TypeScript `--noEmit`, Vite production build and portable server build pass. Node suite: **40 passed, 0 failed** (35 existing + 5 focused studio cases). New cases cover prompt bounds and user text preservation, exact pitch coverage/black-key boundaries, and account envelope/unknown-value handling. Existing cases cover paid-call idempotency, OAuth, durable original input, private libraries, local full MP3/Range/download and card revocation.
+TypeScript `--noEmit`, Vite production build and portable server build pass. Node suite: **41 passed, 0 failed** (35 existing + 5 focused studio cases + 1 JPEG HTTP regression). Production verification also caught a missing JPEG MIME entry in the portable server; the mapping was added with a real GET/HEAD regression. New cases cover prompt bounds and user text preservation, exact pitch coverage/black-key boundaries, and account envelope/unknown-value handling. Existing cases cover paid-call idempotency, OAuth, durable original input, private libraries, local full MP3/Range/download and card revocation.
 
 Removed the old direction modal and its state/ref. Preserved the verified MIDI parser, velocity, pedal, audio renderer, background motion lifecycle and job polling. Modal opening pauses local audio; full Suno modal removes the inline iframe to avoid duplicate playback. No new tracking or user research data was collected.
 

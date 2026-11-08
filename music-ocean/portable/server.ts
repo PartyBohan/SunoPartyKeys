@@ -13,7 +13,7 @@ setSunoFetch(bridgeFetch);
 
 const assets=resolve(fileURLToPath(new URL('../dist-web/',import.meta.url)));
 const approved=(process.env.OCEAN_ALLOWED_ORIGINS||'https://suno.popumusic.cn,https://suno.partykeys.ai').split(',').map(x=>x.trim()).filter(Boolean);
-const mime:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.webp':'image/webp','.png':'image/png','.mp3':'audio/mpeg','.mp4':'video/mp4','.ico':'image/x-icon','.woff2':'font/woff2'};
+const mime:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.png':'image/png','.mp3':'audio/mpeg','.mp4':'video/mp4','.ico':'image/x-icon','.woff2':'font/woff2'};
 const cookieValue=(value:string|undefined,name:string)=>value?.split(';').map(s=>s.trim()).find(s=>s.startsWith(name+'='))?.slice(name.length+1);
 export const server=http.createServer(async(incoming,outgoing)=>{
  try{
