@@ -40,7 +40,8 @@ test('download scope is opt-in and a missing scope never triggers an export',asy
 test('a provider quote precedes a charged export and concurrent clicks spend once',async()=>{
  assert.equal((await post('/api/cards/'+token+'/prepare',{confirm:true})).status,409);
  let r=await post('/api/cards/'+token+'/prepare');assert.equal(r.json().status,'requires_credit');assert.equal(r.json().creditsRemaining,7);assert.equal(spends,0);
- const results=await Promise.all([post('/api/cards/'+token+'/prepare',{confirm:true}),post('/api/cards/'+token+'/prepare',{confirm:true})]);assert.ok(results.some(r=>r.json().status==='ready'));assert.equal(spends,1);
+ const oldScope=ownerCookie+'; ocean_suno='+await seal({access_token:'test-only',expires_at:Date.now()+900000});
+ const results=await Promise.all([post('/api/cards/'+token+'/prepare',{confirm:true}),post('/api/cards/'+token+'/prepare',{confirm:true}),post('/api/cards/'+token+'/prepare',{},oldScope)]);assert.ok(results.some(r=>r.json().status==='ready'));assert.equal(spends,1);
  const before=calls;r=await post('/api/cards/'+token+'/prepare');assert.equal(r.json().status,'ready');assert.equal(calls,before);
 });
 test('a recipient gets only local metadata and seekable MP3, with no login or provider request',async()=>{
@@ -50,7 +51,7 @@ test('a recipient gets only local metadata and seekable MP3, with no login or pr
  assert.equal((await request(data.audioUrl,{headers:{range:'bytes=999-'}})).status,416);assert.equal(calls,before);
 });
 test('share deep links have escaped server-rendered metadata and local audio in their boot data',async()=>{
- const r=await request('/s/'+token);assert.equal(r.status,200);const s=r.text();assert.match(s,/property="og:type" content="music.song"/);assert.match(s,/property="og:title" content="A &lt;script&gt;/);assert.ok(!s.includes('<script>alert'));assert.match(s,/\\u003cscript>/);assert.ok(s.includes('https://suno.popumusic.cn/api/cards/'+token+'/audio'));assert.ok(!s.includes('https://suno.com'));assert.equal(r.headers['cache-control'],'no-store');
+ const r=await request('/s/'+token);assert.equal(r.status,200);const s=r.text();assert.match(s,/property="og:type" content="music.song"/);assert.match(s,/property="og:title" content="A &lt;script&gt;/);assert.ok(!s.includes('<script>alert'));assert.match(s,/\\u003cscript>/);assert.ok(s.includes('https://suno.popumusic.cn/api/cards/'+token+'/audio'));assert.ok(!s.includes('https://suno.com'));assert.equal((s.match(/name="description"/g)||[]).length,1);assert.equal(r.headers['cache-control'],'no-store');
 });
 test('foreign origins and recipients cannot edit or revoke a card; the owner can stop it',async()=>{
  const forbidden=await request('/api/cards/'+token+'/revoke',{method:'POST',headers:{cookie:authCookie,origin:'https://foreign.example','Content-Type':'application/json'},body:'{}'});assert.equal(forbidden.status,403);

@@ -22,7 +22,7 @@ async function prepare(req:Request,c:Card,confirmed:boolean){
  if(c.status==='ready')return json(view(c));
  if(confirmed&&c.status!=='requires_credit')throw new ApiError('请先查询本次导出是否需要下载额度。',409);
  const connection=await sunoSession(req);let response:Response;
- if(!connection.value.download){c.status='connection_required';await save(c);const response=json(view(c));if(connection.updated)await setSessionCookie(response,connection.value);return response;}
+ if(!connection.value.download){const response=json({...view(c),status:'connection_required'});if(connection.updated)await setSessionCookie(response,connection.value);return response;}
  if(!await claim(c))return json({...view(c),status:'preparing'});
  try{
   const result=await sunoCall(connection.value.access_token,'audio-download',{id:c.clipId,format:'mp3',...(confirmed?{confirm:true}:{})});
@@ -68,5 +68,5 @@ export async function cardApi(req:Request):Promise<Response|null>{
 }
 export async function cardPage(req:Request,template:string){const token=new URL(req.url).pathname.match(/^\/s\/([A-Za-z0-9_-]{32})\/?$/)?.[1];if(!token)return new Response('音乐卡不存在。',{status:404});try{const c=await publicCard(token),v=view(c,false),title=escape(c.title+' · 音乐密码'),description=escape(`我弹了 ${c.notes.length} 个音，做了这首歌。点开音乐卡就能听。`),cover=ORIGIN+v.coverUrl;
  const meta=`<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><link rel="canonical" href="${v.url}"><meta property="og:type" content="music.song"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:url" content="${v.url}"><meta property="og:image" content="${cover}"><meta property="og:audio" content="${ORIGIN+v.audioUrl}"><meta property="og:audio:type" content="audio/mpeg"><meta name="description" content="${description}"><script id="ocean-share-data" type="application/json">${JSON.stringify(v).replace(/</g,'\\u003c')}</script>`;
- const html=template.replace(/<title>[\s\S]*?<\/title>/,`<title>${title}</title>`).replace('</head>',meta+'</head>');return new Response(html,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'}});
+ const html=template.replace(/<meta\s+name=["']description["'][^>]*>/gi,'').replace(/<title>[\s\S]*?<\/title>/,`<title>${title}</title>`).replace('</head>',meta+'</head>');return new Response(html,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'}});
  }catch{return new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>音乐卡已停止分享</title><p>这张音乐卡不存在或已停止分享。</p>',{status:404,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});}}
