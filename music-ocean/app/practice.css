@@ -27,15 +27,23 @@
 .practice-phrases button:disabled,.practice-octaves button:disabled{opacity:.4;}
 .practice-instrument{grid-area:instrument;min-width:0;min-height:0;}
 .music-app .practice-roll{position:relative;height:clamp(85px,24dvh,220px);margin:0 0 8px;overflow:hidden;}
-.music-app .practice-grid{position:absolute;inset:0 6px;overflow:hidden;background:repeating-linear-gradient(0deg,transparent 0 calc(25% - 1px),var(--studio-display-grid) 25%),repeating-linear-gradient(90deg,transparent 0 calc(100% / 21 - 1px),var(--studio-display-grid) calc(100% / 21));}
+.music-app .practice-grid{position:absolute;inset:0 var(--studio-key-inset);overflow:hidden;background:repeating-linear-gradient(0deg,transparent 0 calc(25% - 1px),var(--studio-display-grid) 25%),repeating-linear-gradient(90deg,transparent 0 calc(100% / 21 - 1px),var(--studio-display-grid) calc(100% / 21));}
+.practice-lane{position:absolute;inset-block:0;width:calc(100% / 21);transform:translateX(-50%);background:#40816619;border-inline:1px solid #40816624;}
+.practice-lane.hit{background:#4081660d;}
 .practice-strike{position:absolute;bottom:7%;left:0;right:0;border-top:1px solid #829987;z-index:1;}
 .practice-roll i{position:absolute;width:2.45%;min-height:3px;transform:translateX(-50%);border-radius:4px 4px 1px 1px;background:var(--studio-note);}
-.practice-roll i.current{background:#446f58;box-shadow:0 0 0 1px #fff,0 0 8px #608b6c80;}
+.practice-roll i.current{background:#27604b;box-shadow:0 0 0 1px #fff;}
+.practice-roll i.current.hit{background:#79aa93;}
 .music-app .practice-keyboard{min-height:0;}
-.practice-keyboard .piano-keys{height:clamp(43px,9vh,75px);min-height:0;}
+.practice-keyboard .piano-keys{min-height:0;}
 .practice-keyboard .white-key,.practice-keyboard .black-key{min-width:0;touch-action:none;}
-.music-app .practice-keyboard .target-key{filter:brightness(1.18);outline:2px solid #fff;outline-offset:-3px;}
-.music-app .practice-keyboard .hit-key{outline:2px solid #5e9276;outline-offset:-3px;}
+.music-app .practice-keyboard .target-key{outline:2px solid #27604b;outline-offset:-2px;}
+.music-app .practice-keyboard .black-key.target-key{outline-color:#b7eed5;z-index:4;}
+.music-app .practice-keyboard .hit-key{outline-color:#80ae96;}
+.music-app .practice-keyboard button .key-target-label{position:absolute;inset:auto auto 3px 50%;transform:translateX(-50%);padding:2px 3px;border-radius:3px;background:#20513e;color:#fff;font:600 clamp(7px,1.05vw,10px)/1 monospace;white-space:nowrap;}
+.music-app .practice-keyboard .black-key .key-target-label{bottom:2px;}
+.music-app .practice-keyboard button.hit-key .key-target-label{background:#49695b;}
+
 .practice-feedback{display:flex;align-items:center;gap:8px;min-height:30px;flex-wrap:wrap;font-size:11px;color:#2f4d61;}
 .practice-pitches{display:flex;flex-wrap:wrap;gap:4px;}
 .practice-pitches kbd{border:1px solid #adc0ac;color:#3b5647;background:#f8faf4;padding:1px 4px;border-radius:4px;font:inherit;}
@@ -67,7 +75,6 @@
  .practice-selector label,.practice-feedback{font-size:10px;}
  .practice-selector select,.practice-phrases button{min-height:24px;padding:2px 4px;}
  .music-app .practice-roll{height:clamp(35px,calc(100dvh - 257px),120px);margin-bottom:5px;}
- .practice-keyboard .piano-keys{height:40px;}
  .practice-feedback{min-height:22px;gap:3px;}
  .practice-tips,.practice-mixer{font-size:10px;padding-top:5px;}
  .practice-tips small,.practice-mixer small{font-size:9px;}
@@ -95,8 +102,7 @@
  .music-app .flow-progress .flow-line{width:12px;margin:0 5px;}
 }
 @media (min-width:600px) and (max-height:500px){
- .music-app .practice-keyboard .piano-keys{height:40px;}
- .music-app .practice-player{grid-template-rows:auto minmax(0,1fr) auto;}
+ .music-app .music-app .practice-player{grid-template-rows:auto minmax(0,1fr) auto;}
  .practice-panel{max-height:calc(100dvh - 162px);}
 }
 @media (max-width:599px){
@@ -111,7 +117,7 @@
 .practice-tips,.practice-mixer{max-height:260px;}
 @media (min-width:600px) and (max-height:500px){
  .music-app .instrument.practice-player{padding:7px 10px 4px;border-radius:15px;}
- .practice-keyboard .keyboard-deck{height:20px;}
+ .practice-keyboard .keyboard-deck{height:17px;}
  .practice-keyboard .hardware-controls{gap:4px;padding:1px 4px;}
  .practice-keyboard .hardware-dial{width:12px;height:12px;}
  .practice-keyboard .hardware-mark{width:14px;height:14px;}

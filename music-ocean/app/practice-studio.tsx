@@ -2,7 +2,7 @@ import {useEffect,useMemo,useRef,useState,type RefObject} from 'react';
 import {ArrowLeft,AudioLines,ChevronLeft,ChevronRight,FileUp,KeyboardMusic,LoaderCircle,Pause,Play,RotateCcw,Volume2,VolumeX} from 'lucide-react';
 import type {Clip,Creation} from '@/lib/jobs';
 import {noteName} from '@/lib/midi.mjs';
-import {BLACK_KEYS,WHITE_KEYS} from '@/lib/keyboard-layout.mjs';
+import {keyLane} from '@/lib/keyboard-layout.mjs';
 import type {Piano} from '@/lib/piano';
 import {MAX_MIDI_BYTES,parsePracticeMidi,type Part,type Score} from '@/lib/practice-midi';
 import {acceptPracticeNote,buildLessons,lessonShift,phrasesFor,type Lesson} from '@/lib/practice-score';
@@ -352,10 +352,7 @@ function PracticePlayer({score,original,details,zh,getPiano,input,blocked,presse
   const quick=phrase.targets.find((g,i)=>i>0&&g.time-phrase.targets[i-1].time<.24);
   const firstChord=chordGroups[0]?.pitches.map(p=>noteName(p+shift)).join(' · ');
   const pitchLabel=(pitch:number)=>noteName(pitch);
-  const lane=(pitch:number)=>{
-    const local=pitch-minKey+48, white=WHITE_KEYS.indexOf(local), black=BLACK_KEYS.find(k=>k.n===local);
-    return ((black?.x??white+.5)/WHITE_KEYS.length)*100;
-  };
+  const lane=(pitch:number)=>keyLane(pitch-minKey+48);
   const mixing=score.parts.filter(p=>p.id!==selected.id);
   const progress=Math.min(display.index,phrase.targets.length);
   const shownProgress=display.phase==='done'&&display.mode==='follow'?phrase.targets.length:progress;
@@ -375,10 +372,12 @@ function PracticePlayer({score,original,details,zh,getPiano,input,blocked,presse
     </div>
     <div className="practice-instrument">
       <div className="note-display practice-roll" aria-hidden="true"><div className="roll-grid practice-grid">
+        {display.phase!=='done'&&pitches.filter(n=>n>=minKey&&n<=maxKey).map(n=><span key={n} className={`practice-lane${okPitch(n)?' hit':''}`} style={{left:`${lane(n)}%`}}/>)}
         <div className="practice-strike"/>
         {bars.map((n,i)=>{
           const pitch=n.note+shift, bottom=7+(n.start-display.time)*36;
-          return <i key={`${n.start}-${n.note}-${i}`} className={focusPitch(pitch)&&Math.abs(n.start-target.time)<.04?'current':''} style={{left:`${lane(pitch)}%`,bottom:`${bottom}%`,height:`${Math.max(4,n.duration*36)}%`}}/>;
+          const current=focusPitch(pitch)&&Math.abs(n.start-target.time)<.04;
+          return <i key={`${n.start}-${n.note}-${i}`} className={current?`current${okPitch(pitch)?' hit':''}`:''} style={{left:`${lane(pitch)}%`,bottom:`${bottom}%`,height:`${Math.max(4,n.duration*36)}%`}}/>;
         })}
       </div></div>
       <StudioKeyboard zh={zh} connected={!!device} label={say('练习琴键','Practice keys')} pressed={pressed} onInput={screenInput} start={minKey} targets={display.phase==='done'?[]:pitches} hits={display.hit.map(n=>n+shift)} compact/>

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MUSIC_PRESETS,MAX_DIRECTION_CHARS,musicDirection,MAX_PROMPT_CHARS,buildMusicPrompt,musicPromptKey,restoreMusicDirection,accountUsage,KEYBOARD_NOTES,WHITE_KEYS,BLACK_KEYS} from '../dist-node/studio-test.mjs';
+import {MUSIC_PRESETS,MAX_DIRECTION_CHARS,musicDirection,MAX_PROMPT_CHARS,buildMusicPrompt,musicPromptKey,restoreMusicDirection,accountUsage,KEYBOARD_NOTES,WHITE_KEYS,BLACK_KEYS,keyLane} from '../dist-node/studio-test.mjs';
 import {canVisitStep,restoreStudioStep} from '../dist-node/studio-test.mjs';
 
 test('four-step navigation permits returning to melody and requires a real saved work for the result page',()=>{
@@ -79,6 +79,14 @@ test('hardware keyboard contains exactly 36 unique consecutive pitches and the c
  assert.equal(new Set([...WHITE_KEYS,...BLACK_KEYS.map(k=>k.n)]).size,36);
  assert.deepEqual(BLACK_KEYS.map(k=>k.x),[1,2,4,5,6,8,9,11,12,13,15,16,18,19,20]);
  for(const key of BLACK_KEYS){assert.ok(WHITE_KEYS[key.x-1]<key.n);assert.ok(WHITE_KEYS[key.x]>key.n);}
+});
+test('waterfall lanes share the keyboard’s exact centers for white and black keys',()=>{
+ assert.equal(keyLane(48),.5/21*100);
+ assert.equal(keyLane(49),1/21*100);
+ assert.equal(keyLane(50),1.5/21*100);
+ assert.equal(keyLane(51),2/21*100);
+ assert.equal(keyLane(83),20.5/21*100);
+ assert.ok(KEYBOARD_NOTES.every((note,i)=>i===0||keyLane(note)>keyLane(KEYBOARD_NOTES[i-1])));
 });
 test('usage keeps zero separate from unknown and accepts the actual nested account envelope',()=>{
  assert.deepEqual(accountUsage({result:{structuredContent:{suno_account:{plan:{name:'Pro'},credits_remaining:0,download_credits_remaining:7}}}}),{plan:'Pro',generation:0,downloads:7});
