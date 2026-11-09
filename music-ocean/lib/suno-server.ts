@@ -59,7 +59,7 @@ export async function sunoCall(token:string,tool:string,args:unknown={}){
   const result=payload.result;
   let data=result?.structuredContent;
   if(!data){const blocks=result?.content?.filter((c:{type:string})=>c.type==='text')||[],parsed=[];for(const c of blocks){try{parsed.push(JSON.parse(c.text));}catch{}}data=parsed.length===1?parsed[0]:parsed.length?{clips:parsed}:undefined;}
-  if(result?.isError||data?.error&&!data?.id&&!data?.clips){const message=typeof data?.error==='string'?data.error:data?.error?.message||result?.content?.find((c:{type:string})=>c.type==='text')?.text||'Suno could not complete this request.';const candidate=Number(data?.status||data?.status_code);const status=candidate>=400&&candidate<600?candidate:data?.code==='insufficient_credits'?402:502;throw new ApiError(message,status,data?.code||'suno_request_failed');}
+  if(result?.isError||data?.error&&!data?.id&&!data?.clips){const message=typeof data?.error==='string'?data.error:data?.error?.message||result?.content?.find((c:{type:string})=>c.type==='text')?.text||'Suno could not complete this request.';const candidate=Number(data?.status||data?.status_code);const status=candidate>=400&&candidate<600?candidate:data?.code==='insufficient_credits'?402:502;throw new ApiError(message,status,(tool==='audio-midi'&&data?.reason)||data?.code||'suno_request_failed');}
   return data||result;
 }
 export function publicHttps(value:string){
@@ -69,7 +69,7 @@ export function publicHttps(value:string){
 export function normalizeClip(raw:any){
   let d=raw;for(let i=0;i<6;i++){const next=d?.structuredContent||d?.data||d?.clip||(!d?.id&&d?.result)||(!d?.id&&typeof d?.audio==='object'&&d.audio);if(!next||next===d)break;d=next;}
   const items=Array.isArray(d)?d:Array.isArray(d?.clips)?d.clips:[d];
-  const clean=(c:any)=>({id:c?.id||c?.clip_id||'',status:c?.status||(c?.error?'error':'queued'),title:c?.title||c?.metadata?.title||d?.title||'Ocean Echo',audio_url:c?.audio_url||c?.audio?.url||c?.stream_url||null,song_url:c?.song_url||c?.share_url||null,image_url:c?.image_url||null,duration:c?.duration||c?.metadata?.duration||null,error:typeof c?.error==='string'?c.error:c?.error_message||c?.error?.message||null,clip_ids:Array.isArray(c?.clip_ids)?c.clip_ids:[]});
+  const clean=(c:any)=>({id:c?.id||c?.clip_id||'',status:c?.status||(c?.error?'error':'queued'),title:c?.title||c?.metadata?.title||d?.title||'Ocean Echo',midi_url:typeof (c?.midi_url??c?.midi?.url)==='string'?(c.midi_url??c.midi.url):null,audio_url:c?.audio_url||c?.audio?.url||c?.stream_url||null,song_url:c?.song_url||c?.share_url||null,image_url:c?.image_url||null,duration:c?.duration||c?.metadata?.duration||null,error:typeof c?.error==='string'?c.error:c?.error_message||c?.error?.message||null,clip_ids:Array.isArray(c?.clip_ids)?c.clip_ids:[]});
   let clips=items.filter(Boolean).map(clean);const ids=Array.from(new Set<string>([...(Array.isArray(d?.clip_ids)?d.clip_ids:[]),...(Array.isArray(raw?.clip_ids)?raw.clip_ids:[]),...clips.flatMap((c:any)=>c.clip_ids)]));
   if(ids.length&&(!d?.clips&&!Array.isArray(d)))clips=ids.map(id=>({...clean(d),id}));
   const clip_ids=ids.length?ids:clips.map((c:any)=>c.id).filter(Boolean),first=clips.find((c:any)=>['complete','streaming'].includes(c.status)&&(c.audio_url||c.song_url))||clips[0]||clean({});
@@ -87,7 +87,7 @@ export function accountIdentity(profile:any):string|null{
  }
  return null;
 }
-const assertSameOrigin=(req:Request)=>{const source=req.headers.get('origin');if(source&&source!==new URL(req.url).origin&&source!==config('PUBLIC_ORIGIN')&&!allowedOrigins().includes(source))throw new ApiError('Invalid request origin.',403);};
+export const assertSameOrigin=(req:Request)=>{const source=req.headers.get('origin');if(source&&source!==new URL(req.url).origin&&source!==config('PUBLIC_ORIGIN')&&!allowedOrigins().includes(source))throw new ApiError('Invalid request origin.',403);};
 export async function api(req:Request):Promise<Response>{
   const path=new URL(req.url).pathname.replace(/^\/api\//,'');let updatedSession:Session|null=null;
   try{

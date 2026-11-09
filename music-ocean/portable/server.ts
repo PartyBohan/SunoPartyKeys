@@ -7,6 +7,7 @@ import {storage} from './cloudflare-node';
 import {publicFetch} from './public-fetch';
 import {bridgeFetch} from './suno-bridge';
 import {cardApi,cardPage} from './cards';
+import {practiceApi} from './practice';
 
 setProviderFetch(publicFetch);
 setSunoFetch(bridgeFetch);
@@ -36,7 +37,7 @@ export const server=http.createServer(async(incoming,outgoing)=>{
     headers.set('oai-authenticated-user-id',await sunoOwner(request)||identity.id);
     request=new Request(url,{method:incoming.method,headers,body:['GET','HEAD'].includes(incoming.method||'')?undefined:body});
    }
-   const response=await cardApi(request)||await api(request);
+   const response=await practiceApi(request)||await cardApi(request)||await api(request);
    if(deviceOwner&&url.pathname==='/api/auth/callback'&&response.status===302){
     const value=response.headers.getSetCookie().find(s=>s.startsWith('ocean_suno='))?.split(';')[0].slice('ocean_suno='.length);
     const account=await unseal<{user_id?:string}>(value);

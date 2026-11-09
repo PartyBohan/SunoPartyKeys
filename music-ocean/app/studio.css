@@ -1,5 +1,5 @@
 /* One work surface; reading and action order follow the music-making sequence. */
-.music-app{--ink:#272c32;--muted:#606a74;--paper:#faf9f5;--line:#d8dbd8;--accent:#b74d2e;--blue:#344752;position:relative;isolation:isolate;max-width:none;min-height:0;height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:64px minmax(0,1fr) 24px;gap:8px;padding:0 max(32px,env(safe-area-inset-right)) 0 max(32px,env(safe-area-inset-left));color:var(--ink);background:#e9ece8;color-scheme:light;}
+.music-app{--studio-display-bg:#edf0ea;--studio-display-grid:#758a7515;--studio-note:#6c8c7b;--ink:#272c32;--muted:#606a74;--paper:#faf9f5;--line:#d8dbd8;--accent:#b74d2e;--blue:#344752;position:relative;isolation:isolate;max-width:none;min-height:0;height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:64px minmax(0,1fr) 24px;gap:8px;padding:0 max(32px,env(safe-area-inset-right)) 0 max(32px,env(safe-area-inset-left));color:var(--ink);background:#e9ece8;color-scheme:light;}
 .music-app button{transition:background-color .16s,color .16s,box-shadow .16s;}
 .music-app button:focus-visible,.music-app a:focus-visible{outline:3px solid #a54a33;outline-offset:4px;}
 .workspace h1:focus{outline:0;}
@@ -47,7 +47,7 @@
 .music-app .led.blue{background:#698b74;box-shadow:0 0 7px #698b7455;}
 .music-app .device-row{font-size:12px;line-height:1.5;margin:3px 0;color:#53666a;}
 .music-app .device-row select{max-width:100%;padding:6px;background:#fff;color:#364950;border:1px solid #ccd5cf;border-radius:6px;}
-.music-app .note-display{height:70px;background:#edf0ea;border:0;box-shadow:none;border-radius:10px;display:flex;flex-direction:column;color:#405454;margin:0 0 12px;}
+.music-app .note-display{height:70px;background:var(--studio-display-bg);border:0;box-shadow:none;border-radius:10px;display:flex;flex-direction:column;color:#405454;margin:0 0 12px;}
 .music-app .display-top{padding:8px 12px 0;gap:10px;font-size:10px;letter-spacing:0;}
 .music-app .display-top>span:first-child{color:#566961;}
 .music-app .display-top time{font:17px monospace;color:#3d514e;}
@@ -55,8 +55,8 @@
 .music-app .note-count{font-size:10px;color:#53685e;}
 .music-app .piano-roll{flex:1;min-height:20px;height:auto;margin:4px 12px 6px;}
 .music-app .roll-labels,.music-app .display-bottom{display:none;}
-.music-app .roll-grid{border:0;background:repeating-linear-gradient(90deg,transparent,transparent calc(12.5% - 1px),#758a7515 12.5%);}
-.music-app .roll-note{background:#6c8c7b;height:4px;box-shadow:none;}
+.music-app .roll-grid{border:0;background:repeating-linear-gradient(90deg,transparent,transparent calc(12.5% - 1px),var(--studio-display-grid) 12.5%);}
+.music-app .roll-note{background:var(--studio-note);height:4px;box-shadow:none;}
 .music-app .roll-empty{font-size:11px;color:#6d7f73;gap:8px;justify-content:center;}
 .music-app .roll-empty svg{width:17px;color:#7c907f;}
 .studio-actions{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-top:18px;}

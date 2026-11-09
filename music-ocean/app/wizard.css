@@ -1,4 +1,4 @@
-/* Three steps, a quieter style page and a compact utility surface. */
+/* Creation steps, a quieter style page and a compact utility surface. */
 .light-tide{position:absolute;width:105%;height:115%;inset:-15% auto auto -25%;pointer-events:none;opacity:.75;filter:blur(30px);background:radial-gradient(ellipse at 38% 70%,#62cde5d9,transparent 57%);}
 .tide-warm{left:28%;top:-40%;background:radial-gradient(ellipse at 66% 58%,#ffaf6ae6 0%,#e3a0d37d 34%,transparent 65%);}
 .light-atmosphere{opacity:.55;}
