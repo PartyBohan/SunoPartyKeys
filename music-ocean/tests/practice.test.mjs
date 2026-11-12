@@ -117,3 +117,40 @@ test('charge follows physical hold duration, respects speed and can retry after 
   assert.deepEqual(holdProgress(hold,target,next,.5,12),{60:1,64:1});
   assert.deepEqual([...hold.completed],[60,64]);
 });
+
+test('the same USB press is played once and a released key can be struck again',async()=>{
+  const {LiveMidiKeys}=await import('../dist-node/test-entry.mjs');
+  const keys=new LiveMidiKeys(), note={portId:'PartyKeys',channel:1,note:60};
+  assert.equal(keys.accept({...note,type:'on'}),true);
+  assert.equal(keys.accept({...note,type:'on'}),false);
+  assert.equal(keys.accept({...note,type:'off'}),true);
+  assert.equal(keys.accept({...note,type:'off'}),false);
+  assert.equal(keys.accept({...note,type:'on'}),true);
+  keys.clear();
+  assert.equal(keys.accept({...note,type:'on'}),true);
+});
+
+test('USB PartyKeys uses RGB index 12 for C4 while PartyStudio keeps the palette relay mode',async()=>{
+  const {PracticeLights}=await import('../dist-node/test-entry.mjs');
+  async function exercise(name){
+    const frames=[];
+    const source={id:'input',name,state:'connected'};
+    const output={id:'output',name,state:'connected',send:frame=>frames.push(frame)};
+    const access={inputs:new Map([['input',source]]),outputs:new Map([['output',output]]),sysexEnabled:true};
+    const controller=new PracticeLights(()=>{});
+    controller.sync(access,true,'all',true);
+    controller.set([60]);
+    await new Promise(resolve=>setTimeout(resolve,190));
+    controller.dispose();
+    return frames;
+  }
+  const usb=await exercise('PartyKeys');
+  assert.deepEqual(usb[0],[240,5,48,127,127,32,0,15,1,247]);
+  const rgb=usb.find(frame=>frame[7]===0x15&&frame[8]===2);
+  assert.ok(rgb);
+  assert.equal(rgb[16],12);
+  assert.deepEqual(usb.at(-1),usb[1]);
+  const relay=await exercise('PartyStudio');
+  assert.deepEqual(relay[0],[240,127,48,127,127,32,0,15,5,247]);
+  assert.ok(relay.some(frame=>frame[7]===0x71&&frame[9]===60&&frame[10]===8));
+});

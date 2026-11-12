@@ -1,7 +1,7 @@
 // Safe integration entry point. The host application continues to own MIDI access,
 // event listeners, device selection UI, note scoring, audio and Bluetooth pairing.
 import {
-  createLightController, lightingInputIds, midiOutputChoices, supportsPartyKeysBus,
+  createLightController, deviceKind, lightingInputIds, midiOutputChoices, supportsPartyKeysBus,
 } from './partykeys-lights.mjs';
 
 // Some injected Web MIDI implementations omit sysexEnabled. As in FruitChord,
@@ -18,9 +18,9 @@ export function connectedPorts(portMap) {
   return ports.filter(port => port.state !== 'disconnected');
 }
 
-/** @param {{inputs:any,outputs:any,outputId?:string,sysexEnabled:boolean,onStatus?:(state:string,detail?:string)=>void,clock?:any}} options */
+/** @param {{inputs:any,outputs:any,outputId?:string,sysexEnabled:boolean,protocol?:"palette71"|"rgb15",onStatus?:(state:string,detail?:string)=>void,clock?:any}} options */
 export function createPartyKeysLighting({
-  inputs, outputs, outputId, sysexEnabled, onStatus = () => {}, clock,
+  inputs, outputs, outputId, sysexEnabled, protocol = "palette71", onStatus = () => {}, clock,
 }) {
   if (sysexEnabled !== true) throw new Error('Lighting requires confirmed SysEx access; keep ordinary MIDI input enabled.');
   const inputPorts = connectedPorts(inputs), outputPorts = connectedPorts(outputs);
@@ -33,8 +33,10 @@ export function createPartyKeysLighting({
   }
   const inputIds = lightingInputIds(choice.port, inputPorts, outputPorts);
   if (!inputIds.length) throw new Error('Lighting input/output pairing is missing or ambiguous; keep ordinary MIDI input enabled.');
-  // Deliberately force the verified profile even if an old app preference says RGB.
-  const controller = createLightController(choice.port, 'palette71', onStatus, clock);
+  if (protocol === 'rgb15' && deviceKind(choice.port) !== 'partykeys') {
+    throw new Error('The direct RGB profile requires a paired PartyKeys keyboard.');
+  }
+  const controller = createLightController(choice.port, protocol, onStatus, clock);
   const paired = new Set(inputIds);
   let disposed = false;
   return {

@@ -18,6 +18,8 @@ import SongDownload from './song-download';
 import PracticeStudio from './practice-studio';
 import {PracticeLights,type LightState} from '@/lib/practice-lights';
 import type {PracticeInput} from '@/lib/practice-hold';
+import {LiveMidiKeys,midiBridgePresent,mobileMidiHost} from '@/lib/live-midi';
+import {deviceKind} from '@/lib/partykeys/partykeys-lights.mjs';
 import {CURRENT_VERSION} from '@/lib/release-notes';
 import {restoreStudioStep,type StudioStep} from '@/lib/studio-flow';
 import type {MusicCard} from '@/lib/card-types';
@@ -48,11 +50,12 @@ export default function Ocean({defaultLang='zh',domesticShare=false}:{defaultLan
  const stepTitle=useRef<HTMLHeadingElement|null>(null),previousStep=useRef(1);
  const practiceInput=useRef<((event:PracticeInput)=>number|null)|null>(null),canPractice=clip?.status==='complete';
  const [lightState,setLightState]=useState<LightState>('inactive'),[hardwareKey,setHardwareKey]=useState<number|null>(null);
+ const [mobileMidi,setMobileMidi]=useState(false),[nativeMidi,setNativeMidi]=useState(false),[connectingMidi,setConnectingMidi]=useState(false);
  const lights=useRef<PracticeLights|null>(null),sysexGranted=useRef(false),practiceActive=useRef(false),midiConnecting=useRef(false);
- const practiceVoices=useRef(new Map<string,number>());
+ const practiceVoices=useRef(new Map<string,number>()),liveMidiKeys=useRef(new LiveMidiKeys());
  function noteLights(notes:number[]){lights.current?.set(notes);}
- function syncLights(){lights.current??=new PracticeLights(setLightState);lights.current.sync(midiAccess.current,sysexGranted.current,portRef.current,practiceActive.current);}
- function resetPracticeKeys(){piano.current?.stop();practiceVoices.current.clear();setPressed(new Set());}
+ function syncLights(){lights.current??=new PracticeLights(setLightState);lights.current.sync(midiAccess.current,sysexGranted.current,portRef.current,practiceActive.current&&!document.hidden,midiBridgePresent());}
+ function resetPracticeKeys(){piano.current?.stop();practiceVoices.current.clear();liveMidiKeys.current.clear();setPressed(new Set());}
  const practiceBlocked=settings||historyOpen||shareOpen||expandedPlayer||promptOpen||updatesOpen||downloadOpen;
  const promptKey=musicPromptKey(style,instrumental,lang),prompt=promptEdits[promptKey]??buildMusicPrompt(style,instrumental,lang),promptEdited=promptEdits[promptKey]!==undefined;
  const promptRef=useRef<HTMLDialogElement|null>(null),downloadRef=useRef<HTMLDialogElement|null>(null);
@@ -98,7 +101,9 @@ export default function Ocean({defaultLang='zh',domesticShare=false}:{defaultLan
  function exportMidi(){const ns=job?.notes||notes,ps=job?.pedals||pedals,url=URL.createObjectURL(new Blob([toMidi(ns,ps,96)],{type:'audio/midi'}));download(url,'my-original-melody.mid');setTimeout(()=>URL.revokeObjectURL(url),2000);}
  function download(url:string,name:string){const a=document.createElement('a');a.href=url;a.download=name;a.click();}
  function bindInputs(){
-  const all=[...(midiAccess.current?.inputs?.values?.()||[])].filter((p:MIDIInput)=>p.state!=='disconnected');
+  const all:MIDIInput[]=[...(midiAccess.current?.inputs?.values?.()||[])].filter((p:MIDIInput)=>p.state!=='disconnected');
+  const party=all.filter(p=>['partykeys','partystudio'].includes(deviceKind(p)||''));
+  const preferred=party.length===1?party[0]:null;
   syncLights();
   if(all.length===midiInputs.current.length&&all.every((p,i)=>p===midiInputs.current[i]))return;
   for(const p of midiInputs.current)p.onmidimessage=null;
@@ -107,7 +112,12 @@ export default function Ocean({defaultLang='zh',domesticShare=false}:{defaultLan
   setPorts(all.map((p:MIDIInput,i)=>({id:p.id??`input-${i}`,name:p.name||'MIDI Keyboard'})));
   for(const [i,port] of all.entries()){
    const id=port.id??`input-${i}`;
-   const parser=new MidiParser((e:MidiEvent)=>{if(portRef.current==='all'||portRef.current===id)inputRef.current(e);});
+   const parser=new MidiParser((e:MidiEvent)=>{
+    if(document.hidden||settingsRef.current||busyRef.current)return;
+    const selected=portRef.current;
+    if(selected==='all'?preferred&&preferred!==port:selected!==id)return;
+    if(liveMidiKeys.current.accept(e))inputRef.current(e);
+   });
    port.onmidimessage=(e:MIDIMessageEvent)=>{
     const bytes=Array.from(e.data||[]);
     lights.current?.receive(bytes,id);
@@ -118,11 +128,11 @@ export default function Ocean({defaultLang='zh',domesticShare=false}:{defaultLan
   resetPracticeKeys();setHardwareKey(null);
   if(recordingRef.current)stopRecording();
  }
- async function connectMidi(){
-  getPiano().ensure();setMidiMessage('');
-  if(!('requestMIDIAccess'in navigator)){setMidiMessage(t.midiUnsupported);return;}
+ async function requestMidi(interactive:boolean){
+  if(!('requestMIDIAccess'in navigator)){if(interactive)setMidiMessage(t.midiUnsupported);return;}
   if(midiConnecting.current)return;
-  midiConnecting.current=true;
+  if(midiAccess.current&&(!interactive||sysexGranted.current)){bindInputs();return;}
+  midiConnecting.current=true;setConnectingMidi(true);setMidiMessage('');
   try{
    let access:MIDIAccess;
    try{access=await navigator.requestMIDIAccess({sysex:true});sysexGranted.current=true;}
@@ -130,17 +140,34 @@ export default function Ocean({defaultLang='zh',domesticShare=false}:{defaultLan
    if(!mounted.current)return;
    if(midiAccess.current)midiAccess.current.onstatechange=null;
    midiAccess.current=access;access.onstatechange=bindInputs;bindInputs();
-   if(!midiInputs.current.length)setMidiMessage(t.noDevice);
-  }catch{if(mounted.current)setMidiMessage(t.midiDenied);}
-  finally{midiConnecting.current=false;}
+   if(interactive&&!midiInputs.current.length&&!mobileMidiHost())setMidiMessage(t.noDevice);
+  }catch{if(mounted.current&&interactive)setMidiMessage(t.midiDenied);}
+  finally{midiConnecting.current=false;if(mounted.current)setConnectingMidi(false);}
  }
+ function connectMidi(){getPiano().ensure();void requestMidi(true);}
+ useEffect(()=>{
+  const mobile=mobileMidiHost(),bridge=midiBridgePresent();
+  setMobileMidi(mobile);setNativeMidi(bridge);
+  if(!mobile||bridge)void requestMidi(false);
+ },[]);
+
  useEffect(()=>{
   practiceActive.current=step===4;
   if(step!==4){noteLights([]);setHardwareKey(null);}
   syncLights();
   if(step!==4&&practiceVoices.current.size)resetPracticeKeys();
  },[step]);
- useEffect(()=>{const off=()=>lights.current?.dispose();window.addEventListener('pagehide',off);return()=>{window.removeEventListener('pagehide',off);off();};},[]);
+ useEffect(()=>{
+  const visibility=()=>{
+   if(document.hidden){if(recordingRef.current)stopRecording();resetPracticeKeys();}
+   syncLights();
+  };
+  const off=()=>lights.current?.dispose();
+  document.addEventListener('visibilitychange',visibility);
+  window.addEventListener('pagehide',off);
+  window.addEventListener('pageshow',visibility);
+  return()=>{document.removeEventListener('visibilitychange',visibility);window.removeEventListener('pagehide',off);window.removeEventListener('pageshow',visibility);off();};
+ },[]);
 
  async function refreshProviders(){try{const d=await apiFetch('/api/providers');setProviders(d);setCustomUrl(d.custom.url);setCustomStatus(d.custom.statusUrl);setCustomModel(d.custom.model);if(d[job?.provider||provider]?.connected)setConnectionError(false);}catch{}}
  function upsert(j:Job){setJobs(prev=>[j,...prev.filter(x=>x.id!==j.id)].sort((a,b)=>b.createdAt-a.createdAt));}
@@ -167,7 +194,7 @@ export default function Ocean({defaultLang='zh',domesticShare=false}:{defaultLan
  useEffect(()=>{for(const [open,ref] of [[settings,dialogRef],[historyOpen,historyRef],[shareOpen,shareRef],[expandedPlayer,playerRef],[promptOpen,promptRef],[downloadOpen,downloadRef]] as const){if(open&&!ref.current?.open)ref.current?.showModal();if(!open&&ref.current?.open)ref.current?.close();}},[settings,historyOpen,shareOpen,expandedPlayer,promptOpen,updatesOpen,downloadOpen]);
  useEffect(()=>{if(!job||!pending||connectionError||['submission_unknown','settings_required'].includes(job.phase))return;let cancelled=false,timer:number;const tick=async()=>{await syncJob(job.id,job.provider);if(cancelled)return;const age=Date.now()-job.createdAt;timer=window.setTimeout(tick,document.hidden?30000:age>600000?45000:age>180000?15000:6000);};timer=window.setTimeout(tick,400);return()=>{cancelled=true;window.clearTimeout(timer);};},[jobId,pending,connectionError,job?.phase==='submission_unknown',job?.phase==='settings_required']);
  useEffect(()=>{if(!recording)return;const id=window.setInterval(()=>{const time=(performance.now()-startTime.current)/1000;setElapsed(Math.min(time,60));if(time>=60){stopRecording();showNotice(t.recordLimit);}},50);return()=>window.clearInterval(id);},[recording]);
- useEffect(()=>{const down=(e:KeyboardEvent)=>{if(e.repeat||e.metaKey||e.ctrlKey||e.altKey||/INPUT|TEXTAREA|SELECT/.test((e.target as HTMLElement)?.tagName))return;const n=KEYMAP[e.key.toLowerCase()];if(n!==undefined){e.preventDefault();screenInput(n,'on');}};const up=(e:KeyboardEvent)=>{const n=KEYMAP[e.key.toLowerCase()];if(n!==undefined)screenInput(n,'off');};const blur=()=>{if(recordingRef.current)stopRecording();resetPracticeKeys();};window.addEventListener('keydown',down);window.addEventListener('keyup',up);window.addEventListener('blur',blur);return()=>{window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',blur);};},[]);
+ useEffect(()=>{const down=(e:KeyboardEvent)=>{if(e.repeat||e.metaKey||e.ctrlKey||e.altKey||/INPUT|TEXTAREA|SELECT/.test((e.target as HTMLElement)?.tagName))return;const n=KEYMAP[e.key.toLowerCase()];if(n!==undefined){e.preventDefault();screenInput(n,'on');}};const up=(e:KeyboardEvent)=>{const n=KEYMAP[e.key.toLowerCase()];if(n!==undefined)screenInput(n,'off');};const blur=()=>{if(recordingRef.current)stopRecording();if(!practiceActive.current)resetPracticeKeys();};window.addEventListener('keydown',down);window.addEventListener('keyup',up);window.addEventListener('blur',blur);return()=>{window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',blur);};},[]);
  useEffect(()=>{if((domesticShare&&job?.provider==='suno')||!shareOpen||!job||!clip)return;const timer=window.setTimeout(()=>{void makeCard();},300);return()=>window.clearTimeout(timer);},[shareOpen,shareTitle,lang]);
  useEffect(()=>{if(!jobs.length)return;const pending=readStore('ocean.sharePending',null);const found=jobs.find(j=>j.id===pending?.jobId);if(!found)return;saveStore('ocean.sharePending',null);setJobId(found.id);setClipIndex(Math.max(0,found.clips.filter(playable).findIndex(c=>c.id===pending.clipId)));setShareTitle(found.title);setStep(3);if(pending.intent==='download')setDownloadOpen(true);else setShareOpen(true);},[jobs.length,domesticShare]);
  useEffect(()=>{const query=window.matchMedia('(prefers-reduced-motion: reduce)');const change=()=>setReducedMotion(query.matches);change();query.addEventListener('change',change);return()=>query.removeEventListener('change',change);},[]);
@@ -181,7 +208,7 @@ export default function Ocean({defaultLang='zh',domesticShare=false}:{defaultLan
  function refineAgain(){if(!job||pending)return;pausePlayers();setNotes(job.notes.map(n=>({...n})));setPedals(job.pedals.map(p=>({...p})));requestKey.current=null;setStep(2);setError('');}
  async function downloadCustom(){if(!readyAudio)return;try{const r=await fetch(readyAudio);if(!r.ok)throw Error();const blob=await r.blob();if(!blob.type.startsWith('audio/'))throw Error();const url=URL.createObjectURL(blob);download(url,'my-song.'+(blob.type.includes('wav')?'wav':'mp3'));window.setTimeout(()=>URL.revokeObjectURL(url),3000);}catch{setError(say('暂时无法下载这份音频，请从作品服务页下载。','The audio could not download here. Download it from your music service.'));}}
  function openWork(){if(!job)return;stopRecording();pausePlayers();setStep(3);setError('');}
- function openPractice(){if(!canPractice)return;stopRecording();pausePlayers();setStep(4);setError('');}
+ function openPractice(){if(!canPractice)return;stopRecording();pausePlayers();getPiano().ensure();setStep(4);setError('');}
  function navigateStep(target:StudioStep){if(target===1)backToKeys();else if(target===2)nextStep();else if(target===3)openWork();else openPractice();}
  return <main className={`music-app scene-${scene} step-${step} ${motion&&!reducedMotion?'motion-on':''} ${pressed.size?'key-light-on':''}`}>
   <StudioLight/>
@@ -189,14 +216,15 @@ export default function Ocean({defaultLang='zh',domesticShare=false}:{defaultLan
   <div className={`workspace ${step===1?'play-workspace':step===2?'refine-workspace':step===4?'practice-workspace':'song-workspace'}`}>
    {step===1?<><section className="home-intro"><div><h1 ref={stepTitle} tabIndex={-1}>{say('弹几个音，做一首你的歌。','Your song starts with a few notes.')}</h1><p>{say('先录一小段旋律，再选一种风格。','Record a little melody. Give it a sound.')}</p></div></section>
   <section className="instrument" id="studio" aria-label={say('旋律录制台','Melody recorder')}>
-   <div className="instrument-top"><div className="module-title"><h2>{say('录下旋律','Play your melody')}</h2></div><button className={`device-button ${ports.length?'connected':''}`} onClick={connectMidi}><span className="led"/><KeyboardMusic size={15}/>{ports.length?ports[0].name:t.connect}<ChevronRight size={14}/></button></div>
+   <div className="instrument-top"><div className="module-title"><h2>{say('录下旋律','Play your melody')}</h2></div><button className={`device-button ${ports.length?'connected':''}`} onClick={connectMidi}><span className="led"/><KeyboardMusic size={15}/>{ports.length?ports[0].name:mobileMidi?say('蓝牙连接音乐密码','Connect via Bluetooth'):connectingMidi?say('正在连接 USB','Connecting USB'):t.connect}<ChevronRight size={14}/></button></div>
+   {mobileMidi&&!ports.length&&<p className="midi-mobile-help">{nativeMidi?say('在 MIDI Browser 底部点「连接 MIDI 设备」，选 PartyKeys。','Tap Connect MIDI Device in MIDI Browser and choose PartyKeys.'):say('使用 MIDI Browser 通过蓝牙连接 PartyKeys，再打开这个页面。','Pair PartyKeys over Bluetooth in MIDI Browser, then open this page.')}</p>}
    {(midiMessage||ports.length>1)&&<div className="device-row">{midiMessage&&<p>{midiMessage}</p>}{ports.length>1&&<select aria-label={t.selectInput} value={portId} onChange={e=>{setPortId(e.target.value);piano.current?.stop();}}><option value="all">{say('所有 MIDI 输入','All MIDI inputs')}</option>{ports.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>}</div>}
    <div className={`note-display ${recording?'recording':''}`}><div className="display-top"><span><i className={`led ${recording?'red':''}`}/>{recording?say('录音中','REC'):notes.length?say('旋律已保存','SAVED'):say('等待录音','READY')}</span><time>{(recording?elapsed:duration).toFixed(1).padStart(4,'0')}<small> SEC</small></time><span className="note-count">{notes.length} {say('个音','NOTES')}</span></div><div className="piano-roll" aria-label={t.step1}><div className="roll-labels"><span>{noteName(highPitch)}</span><span>{noteName(Math.round((highPitch+lowPitch)/2))}</span><span>{noteName(lowPitch)}</span></div><div className="roll-grid">{!notes.length&&!recording?<div className="roll-empty"><AudioLines size={30} strokeWidth={1}/><span>{say('按下录音键，再弹 3 个音试试','Press record, then play 3 notes')}</span></div>:plotNotes.map((n,i)=><span key={`${i}-${n.start}`} title={`${noteName(n.note)} · ${n.velocity}`} className="roll-note" style={{left:`${Math.min(98,n.start/rollDuration*100)}%`,width:`${Math.max(.7,n.duration/rollDuration*100)}%`,bottom:`${Math.max(2,Math.min(92,(n.note-lowPitch)/(highPitch-lowPitch)*90+3))}%`,opacity:.5+n.velocity/254}}/>)}{recording&&<span className="record-playhead" style={{left:`${elapsed/rollDuration*100}%`}}/>}</div></div><div className="display-bottom"><span>MIDI INPUT</span><span>{say('力度','TOUCH')} <b>{lastVelocity.toString().padStart(3,'0')}</b><em className="velocity-meter" style={{'--level':`${lastVelocity/127*100}%`} as React.CSSProperties}/></span></div></div>
    <StudioKeyboard zh={zh} connected={!!ports.length} label={t.inputTitle} pressed={pressed} disabled={submitting} onInput={screenInput}/><div className="studio-actions"><div className="transport"><button className={`record-button ${recording?'recording':''}`} onClick={recording?stopRecording:startRecording} disabled={submitting||pending}>{recording?<Square size={13} fill="currentColor"/>:<span className="record-dot"/>}{recording?say('完成录音','Finish recording'):say('录制旋律','Record melody')}</button><button className="transport-play" onClick={listen} disabled={!notes.length||recording||submitting} aria-label={previewing?t.stopPreview:t.preview}>{previewing?<Pause size={17}/>:<Play size={17}/>}<span>{say('试听','Listen')}</span></button><button className="transport-reset" onClick={()=>{if(!pending)newTake();}} disabled={!notes.length||submitting||pending} aria-label={t.clear}><RotateCcw size={17}/></button><span className="transport-hint">{recording?say('正在记录音高、节奏与力度','Capturing pitch, rhythm and touch'):say('屏幕琴键 / 电脑键盘 A–K','On-screen keys / type A–K')}</span></div><div className="home-next"><span>{pending?say('作品正在生成，可以查看进度','Your creation is in progress'):recording?say('录好了就继续','Ready when you are'):notes.length?say('旋律已保存，继续选风格','Melody saved. Choose your sound.'):say('先点录音，再弹至少 3 个音','Record at least 3 notes to continue')}</span><button className="next-button" onClick={()=>pending?openWork():nextStep()} disabled={(!validateNotes(notes)&&!pending)||submitting}>{pending?say('查看作品','View creation'):say('下一步：选风格','Next: choose a sound')}<ArrowRight size={18}/></button></div></div><div className="instrument-foot"><span>{say('屏幕琴键 / 电脑键盘 A–K','On-screen keys / type A–K')}</span><button onClick={demo} disabled={recording||submitting||pending}>{say('没有灵感？试试示例','Try a sample melody')}<ArrowUpRight size={13}/></button></div>
   </section>
    </>:step===2?<>
    <section className="direction-shelf"><div className="refine-heading"><h1 ref={stepTitle} tabIndex={-1}>{say('给旋律，挑一种风格。','Find your sound.')}</h1></div><button className={`melody-listen ${previewing?'is-playing':''}`} onClick={listen} disabled={!previewNotes.length||recording||submitting} aria-label={previewing?t.stopPreview:t.preview}>{previewing?<Pause size={21}/>:<Play size={21}/>}<span>{say('再听原句','Hear your melody')}<small>{previewNotes.length} {say('个音','notes')} · {previewDuration.toFixed(1)}s</small></span><AudioLines size={30} strokeWidth={1}/></button><div className="music-style-grid">{MUSIC_PRESETS.map((preset,i)=><MusicStyleCard key={preset.id} index={i} lang={lang} selected={style===i} disabled={submitting||pending} onClick={()=>selectStyle(i)}/>)}</div></section>
-<aside className="production refinement-editor"><div className="selected-direction"><h2>{MUSIC_PRESETS[style][lang]}</h2><p>{MUSIC_PRESETS[style].description[lang]}</p></div><div className="vocal-control"><span>{say('作品形式','FORMAT')}</span><div><button aria-pressed={instrumental} className={instrumental?'selected':''} onClick={()=>selectFormat(true)} disabled={submitting||pending}>{t.instrumental}</button><button aria-pressed={!instrumental} className={!instrumental?'selected':''} onClick={()=>selectFormat(false)} disabled={submitting||pending}>{t.vocal}</button></div></div><div className="prompt-editor"><div className="prompt-heading"><label className="prompt-label" htmlFor="music-direction">{say('音乐风格','Styles')}</label><div><button className="prompt-tool" onClick={resetPrompt} disabled={!promptEdited||submitting||pending} aria-label={say('还原所选风格模板','Restore selected style template')}><RotateCcw size={12}/>{say('还原','Reset')}</button><button className="prompt-tool" onClick={()=>setPromptOpen(true)}>{say('展开编辑','Expand')}<ArrowUpRight size={12}/></button></div></div><textarea id="music-direction" className="music-direction-input" value={prompt} onChange={e=>editPrompt(e.target.value)} maxLength={MAX_PROMPT_CHARS} disabled={submitting||pending} spellCheck={false} placeholder={say('描述曲风、速度、配器、段落与制作质感…','Describe genre, tempo, instruments, arrangement and production…')} aria-describedby="prompt-info"/><div className="prompt-info" id="prompt-info"><span>{say('选卡自动填入，可直接修改','Filled by your style card. Make it yours.')}</span><span>{prompt.length}/{MAX_PROMPT_CHARS}</span></div></div><div className="generate-zone"><p>{say('使用所选音乐服务的账户额度','Uses credits from your music service')}</p><div className="engine-status"><span className={`led ${providers[provider as 'suno'|'custom'].connected?'blue':''}`}/>{provider==='suno'?'Suno':t.otherApi}<span>{providers[provider as 'suno'|'custom'].connected?t.connected:t.notConnected}</span><button onClick={()=>setSettings(true)}>{say('连接设置','Connection')}</button></div></div></aside><div className="wizard-actions"><button className="previous-step" onClick={backToKeys}><ArrowLeft size={16}/>{say('上一步：录旋律','Back to melody')}</button><button className="generate-button" disabled={!validateNotes(notes)||!prompt.trim()||recording||submitting} onClick={()=>pending?openWork():generate()}>{submitting?<LoaderCircle className="spin" size={18}/>:<AudioLines size={18}/>}<span>{submitting?say('保存原始旋律…','Saving your melody…'):pending?say('作品正在生成','Creation in progress'):needsSignIn?say('登录保存作品','Sign in to save'):say('生成我的作品','Create my music')}</span><ArrowUpRight size={18}/></button></div>   </>:step===4&&job&&clip?<PracticeStudio key={job.id+':'+clip.id} job={job} clip={clip} zh={zh} heading={stepTitle} getPiano={getPiano} onBack={openWork} connect={connectMidi} connectSuno={()=>setSettings(true)} device={ports.find(p=>p.id===portId)?.name||ports[0]?.name} deviceMessage={midiMessage} lightState={lightState} hardwareKey={hardwareKey} setLights={noteLights} resetKeys={resetPracticeKeys} input={practiceInput} pressed={pressed} screenInput={screenInput} blocked={practiceBlocked} request={apiFetch}/>:<section className="song-page"><div className="song-page-heading"><h1 ref={stepTitle} tabIndex={-1}>{job?.title||say('你的作品','Your song')}</h1><p>{say('从你的旋律出发，在这里听见完整作品。','Your melody, made into a song. Listen, keep it and share it.')}</p></div>
+<aside className="production refinement-editor"><div className="selected-direction"><h2>{MUSIC_PRESETS[style][lang]}</h2><p>{MUSIC_PRESETS[style].description[lang]}</p></div><div className="vocal-control"><span>{say('作品形式','FORMAT')}</span><div><button aria-pressed={instrumental} className={instrumental?'selected':''} onClick={()=>selectFormat(true)} disabled={submitting||pending}>{t.instrumental}</button><button aria-pressed={!instrumental} className={!instrumental?'selected':''} onClick={()=>selectFormat(false)} disabled={submitting||pending}>{t.vocal}</button></div></div><div className="prompt-editor"><div className="prompt-heading"><label className="prompt-label" htmlFor="music-direction">{say('音乐风格','Styles')}</label><div><button className="prompt-tool" onClick={resetPrompt} disabled={!promptEdited||submitting||pending} aria-label={say('还原所选风格模板','Restore selected style template')}><RotateCcw size={12}/>{say('还原','Reset')}</button><button className="prompt-tool" onClick={()=>setPromptOpen(true)}>{say('展开编辑','Expand')}<ArrowUpRight size={12}/></button></div></div><textarea id="music-direction" className="music-direction-input" value={prompt} onChange={e=>editPrompt(e.target.value)} maxLength={MAX_PROMPT_CHARS} disabled={submitting||pending} spellCheck={false} placeholder={say('描述曲风、速度、配器、段落与制作质感…','Describe genre, tempo, instruments, arrangement and production…')} aria-describedby="prompt-info"/><div className="prompt-info" id="prompt-info"><span>{say('选卡自动填入，可直接修改','Filled by your style card. Make it yours.')}</span><span>{prompt.length}/{MAX_PROMPT_CHARS}</span></div></div><div className="generate-zone"><p>{say('使用所选音乐服务的账户额度','Uses credits from your music service')}</p><div className="engine-status"><span className={`led ${providers[provider as 'suno'|'custom'].connected?'blue':''}`}/>{provider==='suno'?'Suno':t.otherApi}<span>{providers[provider as 'suno'|'custom'].connected?t.connected:t.notConnected}</span><button onClick={()=>setSettings(true)}>{say('连接设置','Connection')}</button></div></div></aside><div className="wizard-actions"><button className="previous-step" onClick={backToKeys}><ArrowLeft size={16}/>{say('上一步：录旋律','Back to melody')}</button><button className="generate-button" disabled={!validateNotes(notes)||!prompt.trim()||recording||submitting} onClick={()=>pending?openWork():generate()}>{submitting?<LoaderCircle className="spin" size={18}/>:<AudioLines size={18}/>}<span>{submitting?say('保存原始旋律…','Saving your melody…'):pending?say('作品正在生成','Creation in progress'):needsSignIn?say('登录保存作品','Sign in to save'):say('生成我的作品','Create my music')}</span><ArrowUpRight size={18}/></button></div>   </>:step===4&&job&&clip?<PracticeStudio key={job.id+':'+clip.id} job={job} clip={clip} zh={zh} heading={stepTitle} getPiano={getPiano} onBack={openWork} connect={connectMidi} connectSuno={()=>setSettings(true)} device={ports.find(p=>p.id===portId)?.name||ports[0]?.name} deviceMessage={midiMessage} mobileMidi={mobileMidi} nativeMidi={nativeMidi} connectingMidi={connectingMidi} lightState={lightState} hardwareKey={hardwareKey} setLights={noteLights} resetKeys={resetPracticeKeys} input={practiceInput} pressed={pressed} screenInput={screenInput} blocked={practiceBlocked} request={apiFetch}/>:<section className="song-page"><div className="song-page-heading"><h1 ref={stepTitle} tabIndex={-1}>{job?.title||say('你的作品','Your song')}</h1><p>{say('从你的旋律出发，在这里听见完整作品。','Your melody, made into a song. Listen, keep it and share it.')}</p></div>
 <section className={`creation ${clip?'has-audio':''}`} id="creation" aria-live="polite"><div className="creation-heading"><div className="module-title"><h2>{say('你的作品','Your music')}</h2></div>{job&&<button className="new-take" onClick={refineAgain} disabled={pending||submitting}><Settings2 size={14}/>{say('调整风格','Refine')}</button>}</div>
    {job?<div className="creation-content"><div className="creation-art"><img src={media(clip?.image_url)||SCENES[job.scene]} alt=""/><span className="art-label">MUSIC OCEAN<br/><b>{job.id.slice(0,8).toUpperCase()}</b></span>{clip&&(compare==='original'||!clip.embed_url)&&<button className="art-play" onClick={()=>{const a=compare==='original'?sourceAudio.current:workAudio.current;if(a){if(a.paused){pausePlayers(a);void a.play().catch(e=>{if(e.name!=='AbortError')setError(t.noAudio);});}else a.pause();}}} aria-label={t.preview}><Play size={24} fill="currentColor"/></button>}</div><div className="creation-main"><div className="work-meta"><span>{job.title}</span><small>{new Date(job.createdAt).toLocaleDateString(zh?'zh-CN':'en-US')} / {job.provider==='suno'?'SUNO':'CUSTOM'}</small></div><h3>{statusTitle}</h3>{!clip&&<><p className="job-explanation">{['error','submission_unknown','settings_required'].includes(job.phase)?job.error:connectionError?say('旋律和任务都已保存，重新连接后会继续查询。','Your melody and task are saved. Reconnect to continue checking.'):job.delayed?say('任务已保留，尚未收到可播放音频。你可以离开页面，回来后继续查询。','Your task is saved, but playable audio has not arrived. Return here to keep checking.'):say('你的原始旋律已保存，完成后作品会出现在这里。','Your original melody is saved. The finished music will appear here.')}</p><ol className="job-stages">{[say('旋律已保存','Melody saved'),say('上传到服务','Upload melody'),say('返回作品','Receive music')].map((s,i)=><li key={i} className={i<stage?'done':''}>{i<stage?<Check size={12}/>:<span/>}{s}</li>)}</ol></>}
     <div className="compare-switch" role="group" aria-label={say('原始旋律与成品对比','Compare original melody and creation')}><button className={compare==='original'?'active':''} onClick={()=>{pausePlayers();setError('');setCompare('original');}}><span>A</span>{say('我弹的原句','My original melody')}<small>{job.notes.length} {say('个音','notes')}</small></button><button className={compare==='creation'?'active':''} onClick={()=>{pausePlayers();setError('');setCompare('creation');}} disabled={!clip}><span>B</span>{say('生成的作品','Generated music')}{!clip&&<small>{say('等待返回','Waiting')}</small>}</button></div>

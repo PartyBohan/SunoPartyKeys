@@ -1,5 +1,5 @@
 import {connectedPorts,createPartyKeysLighting,lightingSysexAvailable} from './partykeys/connect-lighting.mjs';
-import {midiOutputChoices,supportsPartyKeysBus,lightingInputIds} from './partykeys/partykeys-lights.mjs';
+import {midiOutputChoices,supportsPartyKeysBus,lightingInputIds,deviceKind} from './partykeys/partykeys-lights.mjs';
 
 type Choice={id:string;port:MIDIOutput};
 export type LightState='inactive'|'unavailable'|'ready'|'sent'|'error';
@@ -13,7 +13,7 @@ export class PracticeLights {
 
   constructor(private status:(state:LightState)=>void) {}
 
-  sync(access:MIDIAccess|null,allowed:boolean,selection:string,active:boolean) {
+  sync(access:MIDIAccess|null,allowed:boolean,selection:string,active:boolean,nativeBridge=false) {
     this.active=active;
     if (!active||!access) {this.detach();this.status('inactive');return;}
     if (!lightingSysexAvailable(access,allowed)) {this.detach();this.status('unavailable');return;}
@@ -22,11 +22,13 @@ export class PracticeLights {
       .map(choice=>({...choice,ids:lightingInputIds(choice.port,inputs,outputs)}))
       .filter(({ids})=>ids.length&&(selection==='all'||ids.includes(selection)));
     if (choices.length!==1) {this.detach();this.status('unavailable');return;}
-    const {id,port,ids}=choices[0],pairing=ids.join(',');
+    const {id,port,ids}=choices[0];
+    const protocol=!nativeBridge&&deviceKind(port)==='partykeys'?'rgb15':'palette71';
+    const pairing=protocol+':'+ids.join(',');
     if (this.controller&&this.output===port&&this.pairing===pairing) return;
     this.detach();
     try {
-      this.controller=createPartyKeysLighting({inputs:access.inputs,outputs:access.outputs,outputId:id,sysexEnabled:true,
+      this.controller=createPartyKeysLighting({inputs:access.inputs,outputs:access.outputs,outputId:id,sysexEnabled:true,protocol,
         onStatus:(state:string)=>{
           this.failed=state==='error';
           this.status(this.failed?'error':this.notes.length?'sent':'ready');
@@ -40,9 +42,10 @@ export class PracticeLights {
 
   receive(bytes:number[],inputId:string) {this.controller?.receive(bytes,inputId);}
   set(notes:number[]) {
-    const next=this.active?notes:[];
+    const next=notes;
     if (this.notes.join(',')===next.join(',')) return;
     this.notes=next;
+    if (!this.active) return;
     if (next.length) this.controller?.set(next);
     else if(this.controller){this.controller.off();if(!this.failed)this.status('ready');}
   }

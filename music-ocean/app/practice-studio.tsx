@@ -19,7 +19,7 @@ type Props = {
   getPiano:()=>Piano; onBack:()=>void; connect:()=>void; connectSuno:()=>void; device?:string; deviceMessage?:string;
   pressed:Set<number>; screenInput:(note:number,type:'on'|'off')=>void;
   input:RefObject<((event:PracticeInput)=>number|null)|null>; blocked:boolean;
-  lightState:LightState; hardwareKey:number|null; setLights:(notes:number[])=>void; resetKeys:()=>void;
+  mobileMidi:boolean; nativeMidi:boolean; connectingMidi:boolean; lightState:LightState; hardwareKey:number|null; setLights:(notes:number[])=>void; resetKeys:()=>void;
   request:(path:string,options?:RequestInit)=>Promise<any>;
 };
 const clockText=(seconds:number)=>{const time=Math.max(0,seconds);return `${Math.floor(time/60)}:${String(Math.floor(time%60)).padStart(2,'0')}`;};
@@ -147,10 +147,6 @@ export default function PracticeStudio(props:Props) {
     <header className="practice-heading">
       <button className="previous-step" onClick={props.onBack}><ArrowLeft size={16}/>{say('返回作品','Back to song')}</button>
       <div><h1 ref={heading} tabIndex={-1}>{say('学弹这首歌','Learn your song')}</h1><p>{clip.title||job.title}</p></div>
-      <button className="device-button practice-connection" onClick={props.connect} title={props.deviceMessage}>
-        <span className={`practice-led ${props.lightState}`}/>
-        <span>{props.device||say('连接音乐密码','Connect PartyKeys')}{props.device&&<small>{props.lightState==='sent'?say('灯光已发送','Light cue sent'):props.lightState==='ready'?say('亮灯就绪','Lights ready'):say('可弹奏 · 亮灯不可用','MIDI ready · no lights')}{props.hardwareKey!==null?` · ${noteName(props.hardwareKey)}`:''}</small>}</span>
-      </button>
     </header>
     <div className="practice-source">
       <div role="group" aria-label={say('练习谱来源','Practice score source')}>
@@ -158,7 +154,14 @@ export default function PracticeStudio(props:Props) {
         <button disabled={busy} aria-pressed={source==='import'} onClick={()=>select('import')}>{say('导入的 MIDI','Imported MIDI')}</button>
         <button disabled={busy} aria-pressed={source==='original'} onClick={()=>select('original')}>{say('我弹的原句','My original take')}</button>
       </div>
+      <div className="practice-source-actions">
+        <button className="practice-connection" onClick={props.connect} disabled={props.connectingMidi} title={props.deviceMessage}>
+          <span className={`practice-led ${props.lightState}`}/>
+          <span>{props.device|| (props.mobileMidi?say('蓝牙连接','Bluetooth connection'):props.connectingMidi?say('正在连接 USB','Connecting USB'):say('连接或授权 USB','Connect or allow USB'))}
+            {props.device&&<small>{props.hardwareKey!==null?`${say('已收到','Received')} ${noteName(props.hardwareKey)}`:props.lightState==='sent'?say('灯光已发送','Light cue sent'):props.lightState==='ready'?say('琴灯就绪','Light cues ready'):say('可弹奏，琴灯未连接','MIDI ready, no lights')}</small>}</span>
+        </button>
       <button className="practice-import" disabled={busy} onClick={()=>fileInput.current?.click()}><FileUp size={15}/>{say('导入 MIDI','Import MIDI')}</button>
+      </div>
       <input ref={fileInput} type="file" hidden accept=".mid,.midi,audio/midi" onChange={e=>{const file=e.target.files?.[0];e.target.value='';if(file)void prepare(file);}}/>
     </div>
     {current?.parts.some(p=>p.notes.length)?<PracticePlayer key={source} {...props} score={current} original={source==='original'} details={details}/>
@@ -178,14 +181,15 @@ export default function PracticeStudio(props:Props) {
           </>}
         </div>}
       </div>}
+    {props.mobileMidi&&!props.device&&<p className="practice-device" role="status">{props.nativeMidi?say('在 MIDI Browser 底部点「连接 MIDI 设备」，选 PartyKeys。','Tap Connect MIDI Device in MIDI Browser and choose PartyKeys.'):say('在 MIDI Browser 中通过蓝牙连接 PartyKeys，再打开此页。','Use MIDI Browser to pair PartyKeys over Bluetooth and open this page.')}</p>}
     {props.deviceMessage&&<p className="practice-device" role="status">{props.deviceMessage}</p>}
   </section>;
 }
 
 type PlayerProps = Props & {score:Score; original:boolean; details:string};
 type Mode = 'demo'|'follow';
-type Display = {time:number; mode:Mode|null; index:number; phase:'idle'|'playing'|'wait'|'paused'|'done'; hit:number[]; charge?:Record<number,number>; wrong?:number};
-type Run = {mode:Mode; time:number; stamp:number; index:number; waiting:boolean; hold:Hold; firstHit?:number; wrong?:number; next:number; audio:PracticePlayback};
+type Display = {time:number; mode:Mode|null; index:number; phase:'idle'|'playing'|'wait'|'paused'|'done'; hit:number[]; charge?:Record<number,number>; wrong?:number; earlyRelease?:boolean; audioLocked?:boolean};
+type Run = {mode:Mode; time:number; stamp:number; index:number; waiting:boolean; hold:Hold; firstHit?:number; wrong?:number; earlyRelease?:boolean; next:number; audio:PracticePlayback};
 const idle=(time:number):Display=>({time,mode:null,index:0,phase:'idle',hit:[]});
 const rates=[.5,.75,1];
 const KEY_CUE_SECONDS=.45;
@@ -257,10 +261,8 @@ function PracticePlayer({score,original,details,zh,getPiano,input,blocked,presse
   }
   useEffect(()=>{
     const hidden=()=>{if (document.hidden) pause();};
-    window.addEventListener('blur',pause);
     document.addEventListener('visibilitychange',hidden);
     return()=>{
-      window.removeEventListener('blur',pause);
       document.removeEventListener('visibilitychange',hidden);
       halt();
       latestReset.current();
@@ -271,19 +273,20 @@ function PracticePlayer({score,original,details,zh,getPiano,input,blocked,presse
   function tick() {
     const r=run.current;
     if (!r) return;
-    const audioTime=r.audio.context.currentTime;
+    const audioTime=r.audio.context.currentTime, now=performance.now()/1000;
+    const audioLocked=r.audio.context.state==='suspended';
     const target=r.mode==='follow'?phrase.targets[r.index]:undefined;
     const next=target?phrase.targets[r.index+1]:undefined;
     const gate=r.waiting&&r.firstHit!==undefined
       ? next?.time??Math.max(phrase.end,target!.time+Math.max(...Object.values(target!.lengths)))
       : target?.time??Math.max(r.time,phrase.end);
-    r.time=Math.min(gate,r.time+Math.max(0,audioTime-r.stamp)*rate);
-    r.stamp=audioTime;
+    r.time=Math.min(gate,r.time+Math.max(0,now-r.stamp)*rate);
+    r.stamp=now;
     const limit=Math.min(gate,r.time+.09*rate);
     while (r.next<sounds.current.length&&sounds.current[r.next].start<limit) {
       const note=sounds.current[r.next++];
       const start=audioTime+Math.max(0,note.start-r.time)/rate;
-      r.audio.play(note,start,Math.max(.025,Math.min(note.duration,gate-note.start)/rate),muteRef.current(note.track));
+      if(!audioLocked)r.audio.play(note,start,Math.max(.025,Math.min(note.duration,gate-note.start)/rate),muteRef.current(note.track));
     }
     if (r.time>=gate&&!r.waiting) {
       if (target) {
@@ -296,46 +299,50 @@ function PracticePlayer({score,original,details,zh,getPiano,input,blocked,presse
       }
     }
     if (r.waiting&&target) {
-      const charge=holdProgress(r.hold,target,next,rate,audioTime);
+      const charge=holdProgress(r.hold,target,next,rate,now);
       if (r.hold.completed.size===target.pitches.length) {
-        r.index++;r.waiting=false;r.firstHit=undefined;r.hold=newHold();r.wrong=undefined;
+        r.index++;r.waiting=false;r.firstHit=undefined;r.hold=newHold();r.wrong=undefined;r.earlyRelease=false;
         setOctave(null);
       } else {
-        setDisplay({time:r.time,mode:r.mode,index:r.index,phase:'wait',hit:[...r.hold.completed],charge,wrong:r.wrong});
+        setDisplay({time:r.time,mode:r.mode,index:r.index,phase:'wait',hit:[...r.hold.completed],charge,wrong:r.wrong,earlyRelease:r.earlyRelease,audioLocked});
         frame.current=requestAnimationFrame(tick);
         return;
       }
     }
-    setDisplay({time:r.time,mode:r.mode,index:r.index,phase:'playing',hit:[]});
+    setDisplay({time:r.time,mode:r.mode,index:r.index,phase:'playing',hit:[],audioLocked});
     frame.current=requestAnimationFrame(tick);
   }
-  function begin(mode:Mode) {
+  function begin(mode:Mode,fromKey=false) {
     const resume=display.phase==='paused'&&display.mode===mode;
-    const time=resume?display.time:phrase.start;
+    const time=fromKey?phrase.targets[0].time:resume?display.time:phrase.start;
     const index=resume?display.index:0;
-    reset(time);
+    if(fromKey){halt();setOctave(null);}else reset(time);
     const audio=new PracticePlayback(getPiano()),hold=newHold();
     if (resume) for (const pitch of display.hit) hold.completed.add(pitch);
     sounds.current=practiceSounds(score.parts,selected,time,phrase.end,mode,phrase.targets[0].time);
-    const waiting=resume&&mode==='follow'&&!!phrase.targets[index]&&time>=phrase.targets[index].time;
-    run.current={mode,time,stamp:audio.context.currentTime,index,waiting,hold,next:0,audio};
+    const waiting=fromKey||resume&&mode==='follow'&&!!phrase.targets[index]&&time>=phrase.targets[index].time;
+    run.current={mode,time,stamp:performance.now()/1000,index,waiting,hold,next:0,audio};
     tick();
+    return run.current;
   }
   function playNote(event:PracticeInput) {
     const note=event.note??0, pitch=note-shift;
-    const r=run.current, target=r?.mode==='follow'?phrase.targets[r.index]:undefined;
     if (blocked) return null;
+    const startsPractice=display.phase==='idle'&&event.type==='on'&&event.portId&&event.portId!=='screen'&&phrase.targets[0].pitches.includes(pitch);
+    const r=run.current||(startsPractice?begin('follow',true):null);
+    const target=r?.mode==='follow'?phrase.targets[r.index]:undefined;
     if (r&&target&&(r.waiting||target.time-r.time<=KEY_CUE_SECONDS*rate)) {
-      const now=r.audio.context.currentTime, next=phrase.targets[r.index+1];
+      const now=performance.now()/1000, next=phrase.targets[r.index+1];
       if (event.type==='off') {
         // Register a note that reached its full length between two frames.
         if (r.waiting) holdProgress(r.hold,target,next,rate,now);
-        r.hold.down.delete(pitch);
+        const wasHeld=r.hold.down.delete(pitch);
+        if(wasHeld&&!r.hold.completed.has(pitch))r.earlyRelease=true;
       } else if (target.pitches.includes(pitch)) {
         const start=now+Math.max(0,target.time-r.time)/rate;
         if (!r.hold.down.has(pitch)&&!r.hold.completed.has(pitch)) r.hold.down.set(pitch,start);
         r.firstHit??=start;
-        r.wrong=undefined;
+        r.wrong=undefined;r.earlyRelease=false;
       } else if (r.waiting) {
         r.wrong=note;
         window.clearTimeout(wrongTimer.current);
@@ -391,7 +398,7 @@ function PracticePlayer({score,original,details,zh,getPiano,input,blocked,presse
     return n.note+shift>=minKey&&n.note+shift<=maxKey&&n.start>=phrase.targets[0].time&&n.start<display.time+view&&(active||n.start+n.duration>display.time-.25);
   });
   const wantsLight=display.mode==='follow'&&playing&&!blocked&&display.index<phrase.targets.length&&(display.phase==='wait'||target.time-display.time<=KEY_CUE_SECONDS*rate);
-  const pendingLights=wantsLight?pitches.filter(n=>n>=48&&n<=83&&!okPitch(n)):[];
+  const pendingLights=wantsLight||display.phase==='idle'&&!!device&&!blocked?pitches.filter(n=>n>=48&&n<=83&&!okPitch(n)):[];
   const lightSignature=pendingLights.join(',');
   useEffect(()=>{latestLights.current(pendingLights);},[lightSignature]);
   const chordGroups=phrase.targets.filter(g=>g.pitches.length>1);
@@ -406,8 +413,8 @@ function PracticePlayer({score,original,details,zh,getPiano,input,blocked,presse
   const shownProgress=display.phase==='done'&&display.mode==='follow'?phrase.targets.length:progress;
   const feedback=display.phase==='done'
     ? display.mode==='follow'?say('这一段弹完了','You played this phrase'):say('示范结束，轮到你了','Demo finished. Your turn.')
-    : display.phase==='wait'?display.wrong!==undefined?say('再试一次，找亮起的键','Try the lit key again'):Object.values(display.charge||{}).some(v=>v>0&&v<1)?say('按住，等充能条填满','Hold until the bar fills'):say('按亮键，按住直到充满','Press a lit key and hold to fill')
-    : playing?say('音符碰到亮线时下键','Play as notes meet the line'):say('看下一组音符，跟着亮键弹','Watch ahead, then follow the lit keys');
+    : display.phase==='wait'?display.wrong!==undefined?say(`你按了 ${noteName(display.wrong)}，请找亮起的键`,`You played ${noteName(display.wrong)}. Try the lit key.`):display.earlyRelease?say('松开得早了，再按住亮键','Released early. Hold the lit key again.'):Object.values(display.charge||{}).some(v=>v>0&&v<1)?say('按住，等充能条填满','Hold until the bar fills'):say('按亮键，按住直到充满','Press a lit key and hold to fill')
+    : playing?say('音符碰到亮线时下键','Play as notes meet the line'):device&&display.phase==='idle'?say('按实体琴的亮键开始','Play the lit key to begin'):say('看下一组音符，跟着亮键弹','Watch ahead, then follow the lit keys');
 
   return <div className="instrument practice-player">
     <div className="practice-selector">
@@ -489,6 +496,7 @@ function PracticePlayer({score,original,details,zh,getPiano,input,blocked,presse
       {display.phase==='done'&&display.mode==='follow'&&phraseIndex+1<phrases.length
         ?<button className="previous-step" onClick={()=>changePhrase(phraseIndex+1)}>{say('下一段','Next phrase')}<ChevronRight size={16}/></button>
         :<button className="practice-reset" aria-label={say('重练本段','Restart phrase')} onClick={()=>reset()}><RotateCcw size={16}/></button>}
+      {display.audioLocked&&playing&&<button className="practice-tools" onClick={()=>getPiano().ensure()}>{say('开启声音','Enable sound')}</button>}
       <div className="practice-meter"><progress aria-label={say('本段进度','Phrase progress')} max={phrase.targets.length} value={shownProgress}/><small>{shownProgress}/{phrase.targets.length} {say('组','groups')}</small></div>
     </div>
   </div>;

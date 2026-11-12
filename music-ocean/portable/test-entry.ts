@@ -8,3 +8,4 @@ export {buildLessons,phrasesFor,acceptPracticeNote,lessonShift} from '../lib/pra
 export {practiceSourceKey,practiceSemitones,keyFromSignature} from '../lib/practice-key';
 export {holdProgress,holdSeconds,newHold} from '../lib/practice-hold';
 export {PracticeLights} from '../lib/practice-lights';
+export {LiveMidiKeys} from '../lib/live-midi';

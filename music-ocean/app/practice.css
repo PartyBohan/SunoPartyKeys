@@ -205,3 +205,15 @@
  .practice-selector{row-gap:4px;}
  .music-app .practice-roll{height:clamp(145px,26dvh,270px);}
 }
+.practice-heading{grid-template-columns:minmax(0,1fr) minmax(0,2.5fr) minmax(0,1fr);}
+.practice-heading>div{grid-column:2;}
+.practice-source .practice-source-actions{background:none;gap:6px;padding:0;}
+.practice-source .practice-connection{display:flex;align-items:center;gap:6px;text-align:left;line-height:1.2;background:#f5fafbc9;border:1px solid #b6c9d6;}
+.practice-source .practice-connection small{display:inline;margin:0 0 0 5px;}
+.midi-mobile-help{color:#465e56;font-size:11px;margin:0 0 5px;}
+@media (max-width:599px) and (orientation:portrait){
+ .practice-heading>div{grid-column:1/-1;}
+ .practice-source .practice-source-actions{margin-left:auto;}
+}
+.practice-source .practice-connection:not(:disabled):hover{background:#fff;}
+.practice-source .practice-connection .practice-led.ready,.practice-source .practice-connection .practice-led.sent{box-shadow:0 0 0 2px #39a48324;}
