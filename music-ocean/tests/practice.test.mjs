@@ -88,3 +88,32 @@ test('native MIDI loads for free; import is private, validated and separate from
   assert.equal((await run('&source=import&file=1','GET',{},undefined,'suno:foreign')).status,404);
   assert.equal(calls,2);
 });
+
+test('C fingering preserves the original D-major pitch and supports explicit key signatures',async()=>{
+  const {transposedFixture}=await import('./practice-fixture.mjs');
+  const {practiceSourceKey,practiceSemitones,keyFromSignature}=await import('../dist-node/test-entry.mjs');
+  const score=parsePracticeMidi(transposedFixture);
+  assert.deepEqual(practiceSourceKey(score),{tonic:2,minor:false});
+  assert.deepEqual(keyFromSignature(0,1),{tonic:9,minor:true});
+  const phrase=phrasesFor(score.parts[0].notes,score.duration)[0];
+  const shift=lessonShift(phrase.targets,practiceSemitones(2,0));
+  assert.equal(shift,-2);
+  assert.deepEqual(phrase.targets.map(t=>t.pitches[0]+shift),[60,64,67]);
+  assert.deepEqual([60,64,67].map(key=>key-shift),[62,66,69]);
+  assert.ok(phrase.start<phrase.targets[0].time);
+});
+
+test('charge follows physical hold duration, respects speed and can retry after release',async()=>{
+  const {holdProgress,holdSeconds,newHold}=await import('../dist-node/test-entry.mjs');
+  const target={time:2,pitches:[60,64],lengths:{60:.5,64:2}};
+  const next={time:3,pitches:[67],lengths:{67:.5}};
+  const hold=newHold();
+  assert.equal(holdSeconds(target,next,64,.5),2);
+  hold.down.set(60,10);hold.down.set(64,10);
+  assert.deepEqual(holdProgress(hold,target,next,.5,10.5),{60:.5,64:.25});
+  hold.down.delete(60);
+  assert.deepEqual(holdProgress(hold,target,next,.5,11),{60:0,64:.5});
+  hold.down.set(60,11);
+  assert.deepEqual(holdProgress(hold,target,next,.5,12),{60:1,64:1});
+  assert.deepEqual([...hold.completed],[60,64]);
+});

@@ -5,3 +5,6 @@ export {publicAddress,publicFetch} from './public-fetch';
 export {practiceApi} from './practice';
 export {parsePracticeMidi} from '../lib/practice-midi';
 export {buildLessons,phrasesFor,acceptPracticeNote,lessonShift} from '../lib/practice-score';
+export {practiceSourceKey,practiceSemitones,keyFromSignature} from '../lib/practice-key';
+export {holdProgress,holdSeconds,newHold} from '../lib/practice-hold';
+export {PracticeLights} from '../lib/practice-lights';

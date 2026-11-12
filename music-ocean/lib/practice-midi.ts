@@ -1,10 +1,11 @@
 import type {Note, Pedal} from './piano';
+import {keyFromSignature,type MusicKey} from './practice-key';
 
 export const MAX_MIDI_BYTES = 1_048_576;
 const MAX_NOTES = 30_000;
 const MAX_SECONDS = 1_000;
 export type Part = {id:string; name:string; program:number; channel:number; notes:Note[]; drums:boolean; pedals?:Pedal[]};
-export type Score = {parts:Part[]; duration:number};
+export type Score = {parts:Part[]; duration:number; key?:MusicKey};
 
 class MidiReader {
   pos = 0;
@@ -46,7 +47,8 @@ export function parsePracticeMidi(bytes:Uint8Array):Score {
     throw new Error('Use a Standard MIDI File (type 0 or 1, PPQ)');
   }
   const tempos = [{tick:0, us:500000}], parts:Part[] = [];
-  let total = 0;
+  let total = 0, firstKeyTick=Infinity;
+  let key:MusicKey|undefined;
   for (let index = 0; index < count; index++) {
     const track = file.chunk('MTrk'), channels = new Map<number,RawPart>();
     let tick = 0, running = 0, name = '';
@@ -64,6 +66,10 @@ export function parsePracticeMidi(bytes:Uint8Array):Score {
         if (type === 81 && value.length === 3) {
           const us = value[0]*65536 + value[1]*256 + value[2];
           if (us) tempos.push({tick,us});
+        }
+        if (type === 89 && value.length === 2 && tick < firstKeyTick) {
+          const candidate=keyFromSignature(value[0]>=128?value[0]-256:value[0],value[1]);
+          if (candidate) {key=candidate;firstKeyTick=tick;}
         }
         if (type === 47) break;
         continue;
@@ -132,5 +138,5 @@ export function parsePracticeMidi(bytes:Uint8Array):Score {
     }
     for (const pedal of part.pedals || []) pedal.start = time(pedal.start);
   }
-  return {parts,duration};
+  return {parts,duration,...(key?{key}:{})};
 }

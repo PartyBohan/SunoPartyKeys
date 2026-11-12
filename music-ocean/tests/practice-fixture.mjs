@@ -17,3 +17,9 @@ export const midiFixture=Buffer.concat([
   track('Chords',[...event(0,193,0),...event(0,145,48,90),...event(0,52,80),...event(0,55,87),...event(240,177,64,100),...event(240,129,48,0),...event(0,52,0),...event(0,55,0),...event(480,177,64,0)]),
   track('Drums',[...event(0,153,36,110),...event(120,137,36,0),...event(120,153,42,92),...event(120,137,42,0)]),
 ]);
+
+export const transposedFixture=Buffer.concat([
+  chunk('MThd',[0,1,0,2,1,224]),
+  track('Key',[...meta(89,[2,0])]),
+  track('Lead',[...event(0,144,62,94),...event(480,128,62,0),...event(240,144,66,96),...event(240,128,66,0),...event(0,144,69,96),...event(960,128,69,0)]),
+]);

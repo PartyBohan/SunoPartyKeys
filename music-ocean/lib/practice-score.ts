@@ -1,7 +1,7 @@
 import type {Note} from './piano';
 import type {Part, Score} from './practice-midi';
 
-export type Target = {time:number; pitches:number[]};
+export type Target = {time:number; pitches:number[]; lengths:Record<number,number>};
 export type Phrase = {start:number; end:number; targets:Target[]};
 export type Lesson = Part & {role?:'melody'|'chords'|'original'; omit?:string[]};
 
@@ -10,9 +10,10 @@ export function targetsFor(notes:Note[]):Target[] {
   for (const n of notes) {
     const previous = groups.at(-1);
     if (!previous || n.start - previous.time > .035) {
-      groups.push({time:n.start,pitches:[n.note]});
+      groups.push({time:n.start,pitches:[n.note],lengths:{[n.note]:n.duration}});
     } else if (!previous.pitches.includes(n.note)) {
       previous.pitches.push(n.note);
+      previous.lengths[n.note]=n.duration;
     }
   }
   for (const group of groups) group.pitches.sort((a,b)=>a-b);
@@ -81,17 +82,17 @@ export function phrasesFor(notes:Note[], duration:number):Phrase[] {
     while (i<groups.length && targets.length<32 && groups[i].time-targets[0].time<16 && groups[i].time-targets.at(-1)!.time<5) {
       targets.push(groups[i++]);
     }
-    const start = Math.max(0,targets[0].time-.9);
+    const start = targets[0].time-1.25;
     const end = Math.min(groups[i]?.time ?? duration+.4,targets.at(-1)!.time+1.2);
     phrases.push({start,end,targets});
   }
   return phrases;
 }
 
-export function lessonShift(targets:Target[]) {
+export function lessonShift(targets:Pick<Target,'pitches'>[], semitones=0) {
   const pitches = targets.flatMap(g=>g.pitches), low = Math.min(...pitches), high = Math.max(...pitches);
-  const min = Math.ceil((48-low)/12), max = Math.floor((83-high)/12);
-  return min <= max ? 12*Math.min(max,Math.max(0,min)) : 0;
+  const min = Math.ceil((48-low-semitones)/12), max = Math.floor((83-high-semitones)/12);
+  return semitones+(min <= max ? 12*Math.min(max,Math.max(0,min)) : 0);
 }
 
 export function acceptPracticeNote(target:Target, shift:number, note:number, hit:Set<number>) {

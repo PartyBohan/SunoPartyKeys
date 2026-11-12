@@ -6,10 +6,10 @@ const colors=['#ffeca3','#ffe09b','#ffcd91','#ffb187','#ff9c81','#ff877f','#fa79
 type Props={
   zh:boolean; connected:boolean; label:string; pressed:Set<number>;
   onInput:(pitch:number,type:'on'|'off')=>void;
-  disabled?:boolean; start?:number; targets?:number[]; hits?:number[]; compact?:boolean;
+  disabled?:boolean; start?:number; targets?:number[]; hits?:number[]; charges?:Record<number,number>; compact?:boolean;
 };
 
-export default function StudioKeyboard({zh,connected,label,pressed,onInput,disabled,start=48,targets=[],hits=[],compact}:Props) {
+export default function StudioKeyboard({zh,connected,label,pressed,onInput,disabled,start=48,targets=[],hits=[],charges={},compact}:Props) {
   function key(note:number,index:number,black=false) {
     const pitch=note-48+start;
     const isTarget=targets.includes(pitch), name=noteName(pitch);
@@ -20,6 +20,7 @@ export default function StudioKeyboard({zh,connected,label,pressed,onInput,disab
       onPointerUp={()=>onInput(pitch,'off')} onPointerCancel={()=>onInput(pitch,'off')}
       onLostPointerCapture={()=>{if(pressed.has(pitch))onInput(pitch,'off');}}
       onClick={e=>{if(e.detail===0){onInput(pitch,'on');onInput(pitch,'off');}}}>
+      {compact&&isTarget&&<i className="key-charge" aria-hidden="true" style={{height:`${(charges[pitch]||0)*100}%`}}/>}
       {compact&&isTarget?<span className="key-target-label">{name}</span>:!black&&pitch%12===0?<span>{name}</span>:compact&&!black?<span>{name[0]}</span>:null}</button>;
   }
 
